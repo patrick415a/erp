@@ -45,3 +45,7 @@
 
 # add
 **/.git-backup/
+
+# Database
+**/database.js
+**/*.backup
