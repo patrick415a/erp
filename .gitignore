@@ -1,41 +1,47 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# 최상단 공통 제외 파일 지정
+# Dependencies
+**/node_modules/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Build outputs
+**/.next/
+**/dist/
+**/build/
+**/target/
+**/.gradle/
 
-# testing
-/coverage
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+**/application.properties
+**/application-*.properties
+**/application.yml
+**/application-*.yml
+**/application.yaml
+**/application-*.yaml
 
-# next.js
-/.next/
-/out/
+# Local and IDE files
+**/.DS_Store
+**/Thumbs.db
+**/.idea/
+**/.vscode/
+**/*.iml
+**/*.log
 
-# production
-/build
+# Python
+**/__pycache__/
+**/.venv/
+**/venv/
+**/.pytest_cache/
+**/*.pyc
 
-# misc
-.DS_Store
-*.pem
+# Flutter / Dart
+**/.dart_tool/
+**/.flutter-plugins-dependencies
+**/coverage/
+**/android/local.properties
+**/ios/Pods/
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# add
+**/.git-backup/
