@@ -1,6 +1,8 @@
 'use client';
 
-import * as UI from '@/components/ui';
+import modalPartsStyles from '@/assets/modal/ModalParts.module.scss';
+import buttonStyles from '@/assets/common/Button.module.scss';
+
 import { useEffect, useState, useRef } from 'react';
 
 interface AlertModalProps {
@@ -10,7 +12,6 @@ interface AlertModalProps {
 }
 
 const AlertModal = ({ isOpen, message, onClose }: AlertModalProps) => {
-
   const [isClosing, setIsClosing] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -32,19 +33,27 @@ const AlertModal = ({ isOpen, message, onClose }: AlertModalProps) => {
   if (!isOpen) return null;
 
   return (
-    <UI.ModalOverlay ref={modalRef} tabIndex={-1} onKeyDown={(e) => {e.key === 'Enter' ? handleClose() : false}}>
-      <UI.ModalBox isClosing={isClosing}>
-        <UI.ModalText>
-          {message.replaceAll('\\n', '\n')}
-        </UI.ModalText>
-        <UI.Button
-          variant="white"
-          size="medium"
+    <div
+      ref={modalRef}
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        e.key === 'Enter' ? handleClose() : false;
+      }}
+      className={modalPartsStyles.overlay}
+    >
+      <div data-closing={isClosing || undefined} className={modalPartsStyles.alert}>
+        <p className={modalPartsStyles.text}>{message.replaceAll('\\n', '\n')}</p>
+        <button
           onClick={handleClose}
-          fullWidth
-        >확인</UI.Button>
-      </UI.ModalBox>
-    </UI.ModalOverlay>
+          data-variant="white"
+          data-size="medium"
+          data-full-width={true}
+          className={buttonStyles.button}
+        >
+          확인
+        </button>
+      </div>
+    </div>
   );
 };
 

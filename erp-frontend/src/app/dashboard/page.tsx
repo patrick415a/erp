@@ -1,12 +1,18 @@
-"use client";
-import { Layout } from "@/components/Layout";
-import { PageHeader } from '@/components/ui/DataView';
+'use client';
+
+import dataViewStyles from '@/assets/common/DataView.module.scss';
+
+import { Layout } from '@/components/Layout';
 
 export default function DashboardPage() {
   return (
     <>
       <Layout>
-        <PageHeader title="대시보드" />
+        <header className={dataViewStyles.pageHeader}>
+          <div>
+            <h1>대시보드</h1>
+          </div>
+        </header>
       </Layout>
     </>
   );

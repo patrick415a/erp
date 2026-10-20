@@ -1,16 +1,28 @@
-"use client";
+'use client';
 
-import { Holiday } from "@/app/types/holiday";
+import calendarPartsStyles from '@/assets/dashboard/calendar/CalendarParts.module.scss';
+import modalPartsStyles from '@/assets/modal/ModalParts.module.scss';
+
+import { Holiday } from '@/app/types/holiday';
 import type { Schedule } from '@/app/types/schedule';
-import * as UI from '@/components/ui';
-import { Temporal } from "@js-temporal/polyfill";
-import { useEffect, useState, type ReactNode } from "react";
-import { fetchHolidays } from "../app/api/holidays";
-import ScheduleModal from "./modal/ScheduleModal";
+import { Temporal } from '@js-temporal/polyfill';
+import { useEffect, useState, type ReactNode } from 'react';
+import { fetchHolidays } from '../app/api/holidays';
+import ScheduleModal from './modal/ScheduleModal';
 import { MonthlyScheduleList } from './calendar/MonthlyScheduleList';
 
 // 현재 달(예: 9월)을 자동으로 가져오도록 추가
-const Calendar = ({ year, month, thisMonth, controls }: { year: number; month: number; thisMonth: boolean; controls?: ReactNode; }) => {
+const Calendar = ({
+  year,
+  month,
+  thisMonth,
+  controls,
+}: {
+  year: number;
+  month: number;
+  thisMonth: boolean;
+  controls?: ReactNode;
+}) => {
   // 1. 해당 연/월의 1일을 명시적으로 직접 생성 (가장 안전한 방식)
   const targetYearMonth = Temporal.PlainYearMonth.from({ year, month });
   const firstDayDate = Temporal.PlainDate.from({ year, month, day: 1 });
@@ -45,7 +57,13 @@ const Calendar = ({ year, month, thisMonth, controls }: { year: number; month: n
 
   // 앞부분 빈 칸 채우기
   for (let i = 0; i < firstDayIndex; i++) {
-    days.push(<UI.DayCell key={`empty-${i}`} isEmpty />);
+    days.push(
+      <div
+        key={`empty-${i}`}
+        data-empty={true}
+        className={calendarPartsStyles.dayCell}
+      />
+    );
   }
 
   // 실제 날짜 채우기
@@ -56,16 +74,12 @@ const Calendar = ({ year, month, thisMonth, controls }: { year: number; month: n
     const isSaturday = currentDayOfWeek === 6;
 
     // 해당 날짜에 등록된 일정이 있는지 확인 (파란 점 표시용)
-    const fullDate = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const fullDate = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const hasSchedule = schedules.some((sch) => sch.date === fullDate);
 
     days.push(
-      <UI.DayCell
+      <div
         key={d}
-        isToday={isThisMonth && today.day === d}
-        isHoliday={!!holiday}
-        isSunday={isSunday}     // 일요일 여부 전달
-        isSaturday={isSaturday} // 토요일 여부 전달
         onClick={() => hanldleDayClick(d)}
         role="button"
         tabIndex={0}
@@ -77,40 +91,60 @@ const Calendar = ({ year, month, thisMonth, controls }: { year: number; month: n
             hanldleDayClick(d);
           }
         }}
+        data-today={(isThisMonth && today.day === d) || undefined}
+        data-saturday={isSaturday || undefined}
+        data-holiday={!!holiday || isSunday || undefined}
+        className={calendarPartsStyles.dayCell}
       >
         <span>{d}</span> {/* flex 구조에서 텍스트가 씹히지 않도록 span으로 감쌈 */}
-        {holiday && <UI.Tooltip>{holiday.name}</UI.Tooltip>}
+        {holiday && <div className={calendarPartsStyles.tooltip}>{holiday.name}</div>}
         {/* {holiday?.name === "성탄절" && <span style={{ marginTop: "4px" }}>🎄</span>}
         {holiday?.name.includes("추석") && <span>🌕</span>} */}
-        {hasSchedule && <UI.ScheduleDot />}
-      </UI.DayCell>
+        {hasSchedule && <div className={modalPartsStyles.scheduleDot} />}
+      </div>
     );
   }
 
   // 마지막 주의 빈 칸까지 채워 달력의 구분선이 끝까지 이어지게 합니다.
   const trailingDays = (7 - (days.length % 7)) % 7;
   for (let i = 0; i < trailingDays; i++) {
-    days.push(<UI.DayCell key={`trailing-${i}`} isEmpty />);
+    days.push(
+      <div
+        key={`trailing-${i}`}
+        data-empty={true}
+        className={calendarPartsStyles.dayCell}
+      />
+    );
   }
 
   return (
-    <UI.Calendar thismonth={thisMonth}>
-      <UI.CalTopMargin >
-        <UI.CalendarWrapper>
-          <UI.CalendarToolbar>
-            <UI.CalHeader>{year}년 {month}월</UI.CalHeader>
-            {controls && <UI.CalendarNavigation>{controls}</UI.CalendarNavigation>}
-          </UI.CalendarToolbar>
-          <UI.Grid>
-            {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
-              <UI.DayName key={day}>{day}</UI.DayName>
+    <div data-current={thisMonth} className={calendarPartsStyles.calendar}>
+      <div className={calendarPartsStyles.topMargin}>
+        <div className={calendarPartsStyles.wrapper}>
+          <div className={calendarPartsStyles.toolbar}>
+            <h2 className={calendarPartsStyles.header}>
+              {year}년 {month}월
+            </h2>
+            {controls && <div className={calendarPartsStyles.navigation}>{controls}</div>}
+          </div>
+          <div className={calendarPartsStyles.grid}>
+            {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+              <div key={day} className={calendarPartsStyles.dayName}>
+                {day}
+              </div>
             ))}
             {days}
-          </UI.Grid>
-        </UI.CalendarWrapper>
-      </UI.CalTopMargin>
+          </div>
+        </div>
+      </div>
 
-      <MonthlyScheduleList year={year} month={month} schedules={schedules} holidays={holidays} onSelectDate={hanldleDayClick} />
+      <MonthlyScheduleList
+        year={year}
+        month={month}
+        schedules={schedules}
+        holidays={holidays}
+        onSelectDate={hanldleDayClick}
+      />
 
       {/* 분리한 스케줄 모달 컴포넌트 렌더링 */}
       <ScheduleModal
@@ -122,7 +156,7 @@ const Calendar = ({ year, month, thisMonth, controls }: { year: number; month: n
         schedules={schedules}
         setSchedules={setSchedules}
       />
-    </UI.Calendar>
+    </div>
   );
 };
 

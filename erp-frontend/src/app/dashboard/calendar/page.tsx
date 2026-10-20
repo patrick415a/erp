@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import Calendar from "@/components/Calender";
-import { Layout } from "@/components/Layout";
-import * as UI from '@/components/ui';
+import dataViewStyles from '@/assets/common/DataView.module.scss';
+import calendarPartsStyles from '@/assets/dashboard/calendar/CalendarParts.module.scss';
+
+import Calendar from '@/components/Calender';
+import { Layout } from '@/components/Layout';
 import { Icon } from '@/components/ui/Icon';
-import { PageHeader } from '@/components/ui/DataView';
-import { Temporal } from "@js-temporal/polyfill";
-import { useEffect, useState } from "react";
+import { Temporal } from '@js-temporal/polyfill';
+import { useEffect, useState } from 'react';
 
 export default function MyPage() {
-
   const [year, setYear] = useState<number>(Temporal.Now.plainDateTimeISO().year);
   const [month, setMonth] = useState<number>(Temporal.Now.plainDateISO().month);
 
@@ -49,17 +49,42 @@ export default function MyPage() {
   return (
     <>
       <Layout>
-        <PageHeader title="일정관리" />
-        <UI.CalendarLayout>
-          <UI.CalendarBox>
+        <header className={dataViewStyles.pageHeader}>
+          <div>
+            <h1>일정관리</h1>
+          </div>
+        </header>
+        <div className={calendarPartsStyles.layout}>
+          <div className={calendarPartsStyles.box}>
             <Calendar year={prevYear} month={prevMonth} thisMonth={false} />
-            <Calendar year={year} month={month} thisMonth={true} controls={<>
-              <UI.MoveMonthBtn type="button" onClick={prevHandler} aria-label="이전 달"><Icon name="left" size={18} /></UI.MoveMonthBtn>
-              <UI.MoveMonthBtn type="button" onClick={nextHandler} aria-label="다음 달"><Icon name="right" size={18} /></UI.MoveMonthBtn>
-            </>} />
+            <Calendar
+              year={year}
+              month={month}
+              thisMonth
+              controls={
+                <>
+                  <button
+                    type="button"
+                    onClick={prevHandler}
+                    aria-label="이전 달"
+                    className={calendarPartsStyles.moveButton}
+                  >
+                    <Icon name="left" size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nextHandler}
+                    aria-label="다음 달"
+                    className={calendarPartsStyles.moveButton}
+                  >
+                    <Icon name="right" size={18} />
+                  </button>
+                </>
+              }
+            />
             <Calendar year={nextYear} month={nextMonth} thisMonth={false} />
-          </UI.CalendarBox>
-        </UI.CalendarLayout>
+          </div>
+        </div>
       </Layout>
     </>
   );

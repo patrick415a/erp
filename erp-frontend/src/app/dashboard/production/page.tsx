@@ -1,13 +1,14 @@
-"use client";
+'use client';
+
+import dataViewStyles from '@/assets/common/DataView.module.scss';
+import buttonStyles from '@/assets/common/Button.module.scss';
+import { Icon } from '@/components/ui/Icon';
 
 import { Layout } from '@/components/Layout';
-import AlertModal from "@/components/modal/AlertModal";
+import AlertModal from '@/components/modal/AlertModal';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-
-import { Button } from '@/components/ui/Button';
-import { DataPanel, DataTable, PageHeader, StatCard, StatsGrid, StatusBadge } from '@/components/ui/DataView';
-import view from '@/styles/WorkPage.module.scss';
+import view from '@/assets/dashboard/WorkPage.module.scss';
 
 interface ProductionOrder {
   id: string;
@@ -53,7 +54,7 @@ export default function ProductionPage() {
       const token = localStorage.getItem('token');
 
       const res = await axios.get('http://localhost:8080/api/production/orders', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       setOrders(res.data);
@@ -69,11 +70,11 @@ export default function ProductionPage() {
   const handleAddOrder = async () => {
     const newOrderData = {
       id: `PRD-2023-999`, // 테스트용 임시 ID
-      productName: "테스트 신규 모터",
+      productName: '테스트 신규 모터',
       quantity: 100,
-      status: "planning",
+      status: 'planning',
       progress: 0,
-      dueDate: "2023-12-31"
+      dueDate: '2023-12-31',
     };
 
     try {
@@ -82,8 +83,8 @@ export default function ProductionPage() {
       const res = await axios.post('http://localhost:8080/api/production/orders', newOrderData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
       setOrders([...orders, res.data]);
@@ -99,40 +100,112 @@ export default function ProductionPage() {
 
   return (
     <>
-      <Layout><div className={view.page}>
-        <PageHeader title="생산관리" description="생산 오더의 진행 상태와 납기 일정을 확인합니다."><Button onClick={handleAddOrder}>신규 오더 등록</Button></PageHeader>
-        <StatsGrid>
-          <StatCard label="진행중인 오더" value="2건" icon="production" />
-          <StatCard label="생산 대기" value="1건" icon="calendar" />
-          <StatCard label="이번 달 완료" value="1건" tone="success" icon="check" />
-        </StatsGrid>
-        <DataPanel title="생산 오더 목록">
-          <DataTable>
-            <thead>
-              <tr>
-                <th>오더 번호</th>
-                <th>제품명</th>
-                <th>수량</th>
-                <th>상태</th>
-                <th className={view.progressCell}>진행률</th>
-                <th>납기일</th>
-                <th className={view.center}>관리</th>
-              </tr>
-            </thead>
-            <tbody>{orders.map(order => {
-              const badge = getBadgeStyle(order.status);
-              return <tr key={order.id}>
-                <td><strong>{order.id}</strong></td><td>{order.productName}</td><td>{order.quantity.toLocaleString()} 개</td>
-                <td><StatusBadge tone={badge.bg as 'primary' | 'success' | 'secondary'}>{badge.text}</StatusBadge></td>
-                <td><div className={view.progress}><span>{order.progress}%</span><div className={view.progressTrack}>
-                  <div className={view.progressFill} data-completed={order.status === 'completed' || undefined} role="progressbar" style={{ width: order.progress + '%' }} aria-valuenow={order.progress} aria-valuemin={0} aria-valuemax={100} />
-                </div></div></td>
-                <td>{order.dueDate}</td><td className={view.center}><Button variant="outline" size="small">상세보기</Button></td>
-              </tr>;
-            })}</tbody>
-          </DataTable>
-        </DataPanel>
-      </div></Layout>
+      <Layout>
+        <div className={view.page}>
+          <header className={dataViewStyles.pageHeader}>
+            <div>
+              <h1>생산관리</h1>
+              <p>생산 오더의 진행 상태와 납기 일정을 확인합니다.</p>
+            </div>
+            <div className={dataViewStyles.pageActions}>
+              <button onClick={handleAddOrder} className={buttonStyles.button}>
+                신규 오더 등록
+              </button>
+            </div>
+          </header>
+          <div className={dataViewStyles.statsGrid}>
+            <section className={dataViewStyles.statCard} data-tone="default">
+              <span className={dataViewStyles.statLabel}>진행중인 오더</span>
+              <strong className={dataViewStyles.statValue}>2건</strong>
+              <span className={dataViewStyles.statDecoration}>
+                <Icon name="production" size={19} />
+              </span>
+            </section>
+            <section className={dataViewStyles.statCard} data-tone="default">
+              <span className={dataViewStyles.statLabel}>생산 대기</span>
+              <strong className={dataViewStyles.statValue}>1건</strong>
+              <span className={dataViewStyles.statDecoration}>
+                <Icon name="calendar" size={19} />
+              </span>
+            </section>
+            <section className={dataViewStyles.statCard} data-tone="success">
+              <span className={dataViewStyles.statLabel}>이번 달 완료</span>
+              <strong className={dataViewStyles.statValue}>1건</strong>
+              <span className={dataViewStyles.statDecoration}>
+                <Icon name="check" size={19} />
+              </span>
+            </section>
+          </div>
+          <section className={dataViewStyles.panel}>
+            <header className={dataViewStyles.panelHeader}>
+              <h2>생산 오더 목록</h2>
+            </header>
+            <div className={dataViewStyles.tableScroller}>
+              <table className={dataViewStyles.table}>
+                <thead>
+                  <tr>
+                    <th>오더 번호</th>
+                    <th>제품명</th>
+                    <th>수량</th>
+                    <th>상태</th>
+                    <th className={view.progressCell}>진행률</th>
+                    <th>납기일</th>
+                    <th className={view.center}>관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => {
+                    const badge = getBadgeStyle(order.status);
+                    return (
+                      <tr key={order.id}>
+                        <td>
+                          <strong>{order.id}</strong>
+                        </td>
+                        <td>{order.productName}</td>
+                        <td>{order.quantity.toLocaleString()} 개</td>
+                        <td>
+                          <span
+                            data-tone={badge.bg as 'primary' | 'success' | 'secondary'}
+                            className={dataViewStyles.badge}
+                          >
+                            {badge.text}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={view.progress}>
+                            <span>{order.progress}%</span>
+                            <div className={view.progressTrack}>
+                              <div
+                                className={view.progressFill}
+                                data-completed={order.status === 'completed' || undefined}
+                                role="progressbar"
+                                style={{ width: order.progress + '%' }}
+                                aria-valuenow={order.progress}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td>{order.dueDate}</td>
+                        <td className={view.center}>
+                          <button
+                            data-variant="outline"
+                            data-size="small"
+                            className={buttonStyles.button}
+                          >
+                            상세보기
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </Layout>
       <AlertModal isOpen={isModalOpen} message={modalMessage} onClose={handleCloseModal} />
     </>
   );

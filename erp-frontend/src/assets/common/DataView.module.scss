@@ -1,4 +1,4 @@
-@use '../../styles/mixins';
+@use './mixins';
 // 표의 행 높이·제목·요약 카드 등 여러 업무 화면에서 공유하는 스타일입니다.
 .pageHeader {
   display: flex;

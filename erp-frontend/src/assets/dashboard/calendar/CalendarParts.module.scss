@@ -1,4 +1,4 @@
-@use '../../styles/mixins';
+@use '../../common/mixins';
 
 // 달력 전체 너비와 카드입니다. 연·월 이동 버튼은 toolbar 안에서 일반 흐름으로 배치합니다.
 .layout, .box {

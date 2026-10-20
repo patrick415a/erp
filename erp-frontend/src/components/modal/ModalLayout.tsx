@@ -1,7 +1,10 @@
-"use client";
+'use client';
 
-import * as UI from '@/components/ui';
-import React from "react";
+import modalPartsStyles from '@/assets/modal/ModalParts.module.scss';
+import buttonStyles from '@/assets/common/Button.module.scss';
+import { Icon } from '@/components/ui/Icon';
+
+import React from 'react';
 
 interface ModalLayoutProps {
   isOpen: boolean;
@@ -11,20 +14,19 @@ interface ModalLayoutProps {
 }
 
 export default function ModalLayout({ isOpen, onClose, title, children }: ModalLayoutProps) {
-
   if (!isOpen) return null;
 
   return (
-    <UI.ModalOverlay onClick={onClose}>
-      <UI.ModalContainer onClick={(e) => e.stopPropagation()}>
-        <UI.ModalHeader>
-          <UI.ModalTitle>{title}</UI.ModalTitle>
-          <UI.CloseButton onClick={onClose} />
-        </UI.ModalHeader>
-        <UI.ModalBody>
-          {children}
-        </UI.ModalBody>
-      </UI.ModalContainer>
-    </UI.ModalOverlay>
+    <div onClick={onClose} className={modalPartsStyles.overlay}>
+      <div onClick={(e) => e.stopPropagation()} className={modalPartsStyles.container}>
+        <div className={modalPartsStyles.header}>
+          <h3 className={modalPartsStyles.title}>{title}</h3>
+          <button onClick={onClose} aria-label="닫기" className={buttonStyles.closeButton}>
+            <Icon name="close" size={18} />
+          </button>
+        </div>
+        <div className={modalPartsStyles.body}>{children}</div>
+      </div>
+    </div>
   );
 }

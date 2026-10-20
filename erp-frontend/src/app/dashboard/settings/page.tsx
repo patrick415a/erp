@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
 import { Layout } from '@/components/Layout';
 import { useState } from 'react';
 
-import AlertModal from "@/components/modal/AlertModal";
-import styles from './Settings.module.scss';
+import AlertModal from '@/components/modal/AlertModal';
+import styles from '@/assets/dashboard/settings/Settings.module.scss';
 
 export default function SettingsPage() {
   // 모달 상태 관리
@@ -15,7 +15,7 @@ export default function SettingsPage() {
     setIsModalOpen(false);
   };
 
-  const [activeMenu, setActiveMenu] = useState("company");
+  const [activeMenu, setActiveMenu] = useState('company');
 
   return (
     <>
@@ -30,20 +30,20 @@ export default function SettingsPage() {
             <div className={styles.sidebar}>
               <ul>
                 <li
-                  className={activeMenu === "company" ? styles.active : ""}
-                  onClick={() => setActiveMenu("company")}
+                  className={activeMenu === 'company' ? styles.active : ''}
+                  onClick={() => setActiveMenu('company')}
                 >
                   회사 기본 정보
                 </li>
                 <li
-                  className={activeMenu === "items" ? styles.active : ""}
-                  onClick={() => setActiveMenu("items")}
+                  className={activeMenu === 'items' ? styles.active : ''}
+                  onClick={() => setActiveMenu('items')}
                 >
                   품목 마스터 관리
                 </li>
                 <li
-                  className={activeMenu === "users" ? styles.active : ""}
-                  onClick={() => setActiveMenu("users")}
+                  className={activeMenu === 'users' ? styles.active : ''}
+                  onClick={() => setActiveMenu('users')}
                 >
                   시스템 권한 설정
                 </li>
@@ -56,7 +56,11 @@ export default function SettingsPage() {
 
               <div className={styles.formGroup}>
                 <label>회사명</label>
-                <input type="text" defaultValue="Apple ERP Korea" placeholder="회사명을 입력하세요" />
+                <input
+                  type="text"
+                  defaultValue="Apple ERP Korea"
+                  placeholder="회사명을 입력하세요"
+                />
               </div>
 
               <div className={styles.formGroup}>

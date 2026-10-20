@@ -1,6 +1,6 @@
-@use 'tokens';
-@use 'mixins';
-@use 'fonts';
+@use './tokens';
+@use './mixins';
+@use './fonts';
 
 :root {
   @include tokens.theme;

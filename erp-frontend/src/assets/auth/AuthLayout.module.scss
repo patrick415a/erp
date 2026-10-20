@@ -1,4 +1,4 @@
-@use '../../styles/mixins';
+@use '../common/mixins';
 // 로그인/회원가입의 공통 배경과 카드입니다. wide는 기존 회원가입 필드가 모두 들어가는 너비입니다.
 .page {
   display: flex;
