@@ -1,0 +1,81 @@
+// 업무별 상세 스타일입니다. 표·요약 카드의 공통 규칙은 DataView.module.scss에 있습니다.
+.page {
+  width: 100%;
+}
+
+.search {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  max-width: 300px;
+  input {
+    min-height: 34px;
+    padding: 7px 11px;
+    font-size: 13px;
+  }
+}
+
+.number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.center {
+  text-align: center;
+}
+
+.muted {
+  color: #909aaf;
+}
+
+.itemName {
+  color: #34425b;
+  font-weight: 600;
+}
+
+.rowActions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.progressCell {
+  width: 25%;
+  min-width: 160px;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  > span {
+    min-width: 32px;
+  }
+}
+
+.progressTrack {
+  flex: 1;
+  background: #eef1f7;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.progressFill {
+  height: 100%;
+  background: #6d8fec;
+  border-radius: inherit;
+  &[data-completed] {
+    background: #6ea792;
+  }
+}
+
+.accountForm {
+  max-width: 620px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 28px 28px;
+}

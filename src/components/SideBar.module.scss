@@ -1,0 +1,91 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 27px 14px 18px;
+}
+
+.section {
+  margin-bottom: 30px;
+  h2 {
+    margin: 0 14px 14px;
+    color: #a0a9ba;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    letter-spacing: .4px;
+  }
+  ul {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+  li + li {
+    margin-top: 6px;
+  }
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: #8893a7;
+  font-size: 13px;
+  // 행 높이를 정수로 고정해 아래쪽 메뉴로 갈수록 소수점 위치가 누적되지 않게 합니다.
+  height: 44px;
+  min-height: 44px;
+  line-height: 20px;
+  transition: background .15s, color .15s;
+  &:hover {
+    background: #f5f7fb;
+    color: #52648b;
+  }
+}
+
+.link.active {
+  color: var(--primary);
+  background: #edf2fe;
+  font-weight: 650;
+}
+
+// 19px 아이콘이 짝수 높이의 행 안에서 반 픽셀 위치에 놓이지 않도록 위쪽을 기준으로 정렬합니다.
+.link > :first-child {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.activeDot {
+  margin-left: auto;
+  width: 5px;
+  height: 5px;
+  background: var(--primary);
+  border-radius: 50%;
+}
+
+.bottom {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: auto;
+  padding: 16px 12px 0;
+  border-top: 1px solid #eef1f6;
+  font-size: 13px;
+  color: #63718b;
+}
+
+.statusDot {
+  margin-top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #5b9b89;
+}
+
+.subtext {
+  display: block;
+  margin-top: 4px;
+  color: #a2acbc;
+  font-size: 13px;
+}

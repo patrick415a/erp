@@ -1,0 +1,143 @@
+@use '../../styles/mixins';
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes leave {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: #18284355;
+  backdrop-filter: blur(3px);
+}
+
+.container, .alert {
+  @include mixins.surface;
+  width: 440px;
+  max-width: 100%;
+  max-height: calc(100svh - 40px);
+  overflow-y: auto;
+  padding: 27px;
+  box-shadow: 0 20px 70px #1c2a4b24;
+  animation: enter .3s ease both;
+  &[data-closing] {
+    animation: leave .3s ease both;
+  }
+}
+
+.alert {
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 32px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 23px;
+}
+
+.title {
+  font-size: 18px;
+  letter-spacing: -.5px;
+}
+
+.body {
+  min-width: 0;
+}
+
+.text {
+  color: var(--text);
+  font-size: 15px;
+  text-align: center;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.scheduleList {
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.scheduleItem {
+  padding: 15px 0;
+  border-top: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.scheduleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.badge {
+  display: inline-flex;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 13px;
+  background: #fff6df;
+  color: #b48c38;
+  &[data-status='진행'] {
+    color: var(--primary);
+    background: #edf2ff;
+  }
+  &[data-status='완료'] {
+    color: #4d927f;
+    background: #eaf6f0;
+  }
+}
+
+.scheduleDot {
+  width: 5px;
+  height: 5px;
+  background: var(--primary);
+  border-radius: 50%;
+  margin-top: 4px;
+}

@@ -1,0 +1,35 @@
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 18px 30px;
+  color: #a3adbd;
+  font-size: 13px;
+  strong {
+    font-weight: 500;
+    color: #8c97aa;
+  }
+  span {
+    margin-left: 12px;
+  }
+  nav {
+    display: flex;
+    gap: 18px;
+  }
+  a:hover {
+    color: var(--primary);
+  }
+}
+
+@media (max-width: 760px) {
+  .footer {
+    padding: 16px;
+    font-size: 13px;
+  }
+  .footer span {
+    display: block;
+    margin: 3px 0 0;
+  }
+}

@@ -1,0 +1,142 @@
+// 로그인·회원가입 폼. 필드 자체의 스타일은 ui/FormControls.module.scss에서 수정합니다.
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 19px 22px;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -3px;
+  color: #7b88a0;
+  font-size: 13px;
+  input[type='checkbox'] {
+    appearance: none;
+    display: inline-grid;
+    place-content: center;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #cbd5e5;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    transition: background-color .15s, border-color .15s;
+
+    &::before {
+      content: '';
+      width: 8px;
+      height: 5px;
+      border-left: 2px solid #fff;
+      border-bottom: 2px solid #fff;
+      transform: translateY(-1px) rotate(-45deg) scale(0);
+    }
+
+    &:hover { border-color: #8ca8ee; }
+    &:checked {
+      background: var(--primary);
+      border-color: var(--primary);
+      &::before { transform: translateY(-1px) rotate(-45deg) scale(1); }
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  .checkbox input[type='checkbox'] {
+    appearance: auto;
+    &::before { display: none; }
+  }
+}
+
+.submit {
+  min-height: 47px;
+  font-size: 14px;
+}
+
+.social {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 -4px;
+  color: #a1abbd;
+  font-size: 13px;
+  &::before, &::after {
+    content: '';
+    height: 1px;
+    flex: 1;
+    background: var(--border);
+  }
+}
+
+.links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+  padding-top: 20px;
+  color: #8793aa;
+  font-size: 13px;
+  a:hover {
+    color: var(--primary);
+  }
+  a + a {
+    border-left: 1px solid var(--border);
+    padding-left: 18px;
+  }
+}
+
+.radioGroup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 46px;
+}
+
+.address {
+  display: flex;
+  gap: 8px;
+  > input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.hint {
+  font-size: 13px;
+  color: #8a96ab;
+}
+
+@media (max-width: 540px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 17px;
+  }
+  .full {
+    grid-column: auto;
+  }
+  .radioGroup {
+    gap: 8px;
+  }
+}

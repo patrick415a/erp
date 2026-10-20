@@ -1,0 +1,138 @@
+@use '../../../styles/mixins';
+
+.container {
+  width: 100%;
+}
+
+.header {
+  margin-bottom: 29px;
+  h2 {
+    font-size: 26px;
+    font-weight: 750;
+    letter-spacing: -.9px;
+    line-height: 1.4;
+  }
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 22px;
+  // max-width: 1180px;
+  align-items: start;
+}
+
+.sidebar {
+  @include mixins.surface;
+  padding: 12px;
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  li {
+    padding: 13px 14px;
+    border-radius: 6px;
+    color: #8894a9;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s;
+    &:hover {
+      background: #f5f7fb;
+    }
+    + li {
+      margin-top: 5px;
+    }
+    &.active {
+      background: #edf2ff;
+      color: var(--primary);
+      font-weight: 650;
+    }
+  }
+}
+
+.mainPanel {
+  @include mixins.surface;
+  padding: 0 28px 28px;
+  h3 {
+    margin: 0 -28px 28px;
+    padding: 16px 28px;
+    font-size: 14px;
+    font-weight: 650;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 22px;
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #7d89a0;
+  }
+  input {
+    width: 100%;
+    min-height: 42px;
+    padding: 11px 13px;
+    font-size: 13px;
+    color: #53617b;
+    border: 1px solid #dfe5ef;
+    border-radius: 6px;
+    background: #fff;
+    &:focus {
+      outline: none;
+      border-color: #7394ef;
+      box-shadow: 0 0 0 3px #3563e910;
+    }
+  }
+}
+
+.saveBtn {
+  display: block;
+  margin-right: auto;
+  min-height: 39px;
+  padding: 9px 22px;
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  background: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  &:hover {
+    background: var(--primary-hover);
+  }
+}
+
+@include mixins.mobile {
+  .header h2 {
+    font-size: 23px;
+  }
+  .content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .sidebar {
+    padding: 8px;
+    ul {
+      display: flex;
+      overflow-x: auto;
+    }
+    li {
+      padding: 10px 12px;
+      white-space: nowrap;
+      + li {
+        margin: 0;
+      }
+    }
+  }
+  .mainPanel {
+    padding: 0 20px 24px;
+    h3 {
+      margin: 0 -20px 24px;
+      padding: 18px 20px;
+    }
+  }
+}

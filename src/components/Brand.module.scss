@@ -1,0 +1,36 @@
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: #16223b;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -.7px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  color: white;
+  background: linear-gradient(145deg, #4979ff, #2352d6);
+  box-shadow: inset 0 0 0 1px #ffffff1f;
+  font-size: 23px;
+  font-weight: 750;
+  letter-spacing: -1px;
+}
+
+.compact {
+  font-size: 16px;
+  gap: 10px;
+  .mark {
+    width: 31px;
+    height: 31px;
+    font-size: 20px;
+    border-radius: 8px;
+  }
+}

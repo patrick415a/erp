@@ -1,0 +1,20 @@
+// 값만 선언하는 파일입니다. 여러 모듈에서 불러와도 전역 CSS가 중복 생성되지 않습니다.
+@mixin surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+@mixin focus-ring {
+  outline: 3px solid rgba(53, 99, 233, .2);
+  outline-offset: 3px;
+}
+
+@mixin tablet {
+  @media (max-width: 1000px) { @content; }
+}
+
+
+@mixin mobile {
+  @media (max-width: 760px) { @content; }
+}

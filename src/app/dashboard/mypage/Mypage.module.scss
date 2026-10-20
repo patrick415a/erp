@@ -1,0 +1,73 @@
+@use '../../../styles/mixins';
+
+.content {
+  display: flex;
+  gap: 16px;
+
+  &>form {
+    max-width: none;
+    padding-top: 0;
+  }
+
+  &>form:first-child {
+    width: 60%;
+  }
+
+  &>form:last-child {
+    width: 40%;
+  }
+
+  & button {
+    justify-content: flex-start;
+  }
+}
+
+.address {
+  display: flex;
+  gap: 8px;
+}
+
+.inputGroup {
+  display: flex;
+  gap: 8px;
+
+  &>div {
+    width: 100%;
+  }
+}
+
+.subTitle {
+  margin: 0 -28px 0;
+  padding: 20px 28px;
+  font-size: 14px;
+  font-weight: 650;
+  border-bottom: 1px solid var(--border);
+  line-height: 1;
+}
+
+@include mixins.tablet {
+  .content {
+    flex-direction: column;
+
+    &>form {
+      padding: 0 20px 24px;
+    }
+
+    &>form:first-child {
+      width: 100%;
+    }
+
+    &>form:last-child {
+      width: 100%;
+    }
+  }
+
+  .subTitle {
+    margin: 0 -20px 0;
+    padding: 18px 20px;
+  }
+
+  .inputGroup {
+    display: block;
+  }
+}

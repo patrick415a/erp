@@ -1,0 +1,23 @@
+// 전체 디자인의 기준값입니다. 브랜드 색상·배경·기본 크기는 여기서 수정하세요.
+$primary: #3563e9;
+$primary-hover: #2850cc;
+$text: #18243b;
+$muted: #8490a5;
+$border: #e5e9f1;
+$background: #f5f6fa;
+$surface: #fff;
+$radius: 10px;
+$header-height: 72px;
+$sidebar-width: 224px;
+
+// 브라우저에서 사용하는 공통 색상. 각 module.scss에서도 var(--primary)로 재사용합니다.
+@mixin theme {
+  --primary: #{$primary};
+  --primary-hover: #{$primary-hover};
+  --text: #{$text};
+  --muted: #{$muted};
+  --border: #{$border};
+  --background: #{$background};
+  --surface: #{$surface};
+  --radius: #{$radius};
+}

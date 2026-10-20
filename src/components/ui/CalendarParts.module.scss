@@ -1,0 +1,173 @@
+@use '../../styles/mixins';
+
+// 달력 전체 너비와 카드입니다. 연·월 이동 버튼은 toolbar 안에서 일반 흐름으로 배치합니다.
+.layout, .box {
+  width: 100%;
+  min-width: 0;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(340px, 1fr);
+  align-items: stretch;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+
+  // 기존 앞·뒤 달 컴포넌트의 상태는 유지하고 선택한 달 하나만 표시합니다.
+  &[data-current='false'] {
+    display: none;
+  }
+}
+
+.topMargin {
+  margin: 0;
+  min-width: 0;
+}
+
+.wrapper {
+  @include mixins.surface;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  // min-height: 78px;
+  padding: 12px 24px;
+}
+
+.header {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 32px;
+  letter-spacing: -.6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.moveButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: #7d8a9f;
+  transition: color .15s, border-color .15s, background-color .15s;
+
+  &:hover {
+    color: var(--primary);
+    background: #f4f7ff;
+    border-color: #c4d2f5;
+  }
+}
+
+// gap의 1px 배경으로 칸 사이의 선을 한 번만 그립니다.
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  border-top: 1px solid var(--border);
+  background: var(--border);
+}
+
+.dayName {
+  padding: 11px 4px;
+  background: #f9fafe;
+  color: #8894a8;
+  text-align: center;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+
+  &:first-child { color: #cb7980; }
+  &:nth-child(7) { color: #6e8fc9; }
+}
+
+.dayCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+  min-height: 100px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #536079;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: background-color .15s;
+
+  > span:first-child {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    font-variant-numeric: tabular-nums;
+  }
+  &:hover { background: #f6f8ff; }
+  &:focus-visible { outline: 2px solid #8ca9f3; outline-offset: -2px; }
+  &[data-empty] {
+    background: #fafbfe;
+    pointer-events: none;
+  }
+  &[data-saturday] { color: #6b8cc5; }
+  &[data-holiday] { color: #ce737d; }
+  &[data-today] {
+    background: #f8faff;
+    > span:first-child {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 650;
+    }
+  }
+}
+
+.tooltip {
+  max-width: 100%;
+  padding-left: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+// 작은 화면에서는 달력 아래로 월별 목록을 내려 읽을 수 있는 너비를 확보합니다.
+@media (max-width: 1200px) {
+  .calendar { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+}
+
+@include mixins.mobile {
+  .toolbar {
+    min-height: 68px;
+    padding: 16px;
+    gap: 14px;
+  }
+  .header { font-size: 19px; }
+  .dayCell {
+    min-height: 80px;
+    padding: 7px 5px;
+    font-size: 13px;
+  }
+  .tooltip { padding-left: 2px; font-size: 13px; }
+}
+
+@media (max-width: 430px) {
+  .dayCell { min-height: 66px; padding: 5px 3px; }
+  .dayCell > span:first-child { width: 24px; height: 24px; }
+}
