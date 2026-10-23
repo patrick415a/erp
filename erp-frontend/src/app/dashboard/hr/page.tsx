@@ -158,13 +158,22 @@ export default function HrPage() {
                       <td className={view.center}>{getStatusBadge(emp.status)}</td>
                       <td>{emp.joinDate}</td>
                       <td className={view.center}>
-                        <button
-                          data-variant="ghost"
-                          data-size="small"
-                          className={buttonStyles.button}
-                        >
-                          수정
-                        </button>
+                        <div className={view.rowActions}>
+                          <button
+                            data-variant="outline"
+                            data-size="small"
+                            className={buttonStyles.button}
+                          >
+                            수정
+                          </button>
+                          <button
+                            data-variant="danger"
+                            data-size="small"
+                            className={buttonStyles.button}
+                          >
+                            삭제
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
