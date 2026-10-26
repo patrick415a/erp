@@ -1,6 +1,7 @@
 import ConditionalLayout from '@/components/ConditionalLayout';
 import '@/assets/common/globals.scss';
 import type { Metadata } from 'next';
+import ReduxProvider from "@/store/provider";
 
 export const metadata: Metadata = {
   title: { template: '%s | ERP', default: 'ERP 시스템' },
@@ -11,7 +12,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ko">
       <body>
-        <ConditionalLayout>{children}</ConditionalLayout>
+        <ReduxProvider>
+          <ConditionalLayout>
+            {children}
+          </ConditionalLayout>
+        </ReduxProvider>
       </body>
     </html>
   );

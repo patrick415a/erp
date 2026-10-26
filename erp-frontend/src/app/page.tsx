@@ -5,6 +5,10 @@ import formControlsStyles from '@/assets/common/FormControls.module.scss';
 import buttonStyles from '@/assets/common/Button.module.scss';
 import { Brand } from '@/components/Brand';
 
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '@/store/store';
+import { setLogin } from '@/store/authSlice';
+
 import Link from 'next/link';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
@@ -18,6 +22,7 @@ import AlertModal from '@/components/modal/AlertModal';
 };*/
 
 export default function Home() {
+  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
   // 입력값 상태 관리
@@ -45,7 +50,8 @@ export default function Home() {
       if (response.status === 200) {
         // 1. 백엔드에서 발급한 JWT 토큰을 localStorage에 저장
         const token = response.data.token;
-        localStorage.setItem('token', token);
+        // localStorage.setItem('token', token);
+        dispatch(setLogin(token));
 
         // 2. 이후 모든 axios 요청 헤더에 JWT 토큰을 자동 포함하도록 설정
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
