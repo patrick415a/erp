@@ -20,7 +20,13 @@ public class ProductionOrderService {
     }
 
     @Transactional
-    public ProductionOrder createOrder(ProductionOrder order){
+    public ProductionOrder createOrder(ProductionOrder order) {
+        Long sequence = productionOrderRepository.getNextOrderSequence();
+        int year = java.time.Year.now().getValue();
+
+        String orderId = String.format("PRD-%d-%04d", year, sequence);
+        order.setId(orderId);
+
         return productionOrderRepository.save(order);
     }
 

@@ -122,19 +122,11 @@ export default function ProductionPage() {
       return;
     }
 
-    // 기존 데이터와 겹치지 않는 임시 오더 번호 생성
-    const id = `PRD-${crypto.randomUUID()}`;
-
     try {
       const token = localStorage.getItem('token');
 
       await axios.post(
-        'http://localhost:8080/api/production/orders',
-        {
-          id,
-          ...newOrder,
-        },
-        {
+        'http://localhost:8080/api/production/orders', { ...newOrder }, {
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
