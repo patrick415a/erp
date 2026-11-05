@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/members/**").permitAll() // 회원가입 API 등 /api/members 하위 모두 허용
                         .requestMatchers("/api/production/**").permitAll()
+                        .requestMatchers("/api/inventory/**").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();
