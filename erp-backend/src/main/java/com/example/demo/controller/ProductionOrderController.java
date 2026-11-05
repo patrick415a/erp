@@ -27,4 +27,16 @@ public class ProductionOrderController {
         ProductionOrder savedOrder = productionOrderService.createOrder(order);
         return ResponseEntity.ok(savedOrder);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductionOrder> updateOrder(@PathVariable String id, @RequestBody ProductionOrder updatedOrder) {
+        ProductionOrder savedOrder = productionOrderService.updateOrder(id, updatedOrder);
+        return ResponseEntity.ok(savedOrder);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteOrder(@PathVariable String id) {
+        productionOrderService.deleteOrder(id);
+        return ResponseEntity.noContent().build();
+    }
 }

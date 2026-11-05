@@ -3,7 +3,7 @@
 import dataViewStyles from '@/assets/common/DataView.module.scss';
 import buttonStyles from '@/assets/common/Button.module.scss';
 import { Icon } from '@/components/ui/Icon';
-
+import axios from 'axios';
 import { Layout } from '@/components/Layout';
 import AlertModal from '@/components/modal/AlertModal';
 import { useState } from 'react';
@@ -61,6 +61,18 @@ export default function HrPage() {
       joinDate: '2021-05-20',
     },
   ]);
+  //백엔드 API 호출 비동기 (렉방지, 가독성)
+  const fetchEmployees = async () => {
+    try {
+      const response = await axios.get("http://localhost:8080/api/hr/employees", {
+        params: { //이건 페이징 너때문에
+          //서버(API)로 페이지네이션(Pagination) 및 검색 데이터를 보낼 때 사용하는 쿼리 파라미터(Q)
+        }
+      })
+    }catch (error) {
+      console.error()
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
