@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import axios from 'axios';
 import { Layout } from '@/components/Layout';
 import AlertModal from '@/components/modal/AlertModal';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import view from '@/assets/dashboard/WorkPage.module.scss';
 
 interface Employee {
@@ -27,52 +27,24 @@ export default function HrPage() {
     setIsModalOpen(false);
   };
 
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: 'EMP-001',
-      name: '김철수',
-      department: '개발팀',
-      role: '수석 엔지니어',
-      status: 'active',
-      joinDate: '2020-03-02',
-    },
-    {
-      id: 'EMP-002',
-      name: '이영희',
-      department: '인사팀',
-      role: '팀장',
-      status: 'active',
-      joinDate: '2019-11-15',
-    },
-    {
-      id: 'EMP-003',
-      name: '박민수',
-      department: '영업팀',
-      role: '사원',
-      status: 'leave',
-      joinDate: '2022-07-01',
-    },
-    {
-      id: 'EMP-004',
-      name: '정지원',
-      department: '디자인팀',
-      role: 'UI/UX 디자이너',
-      status: 'active',
-      joinDate: '2021-05-20',
-    },
-  ]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
   //백엔드 API 호출 비동기 (렉방지, 가독성)
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get("http://localhost:8080/api/hr/employees", {
-        params: { //이건 페이징 너때문에
-          //서버(API)로 페이지네이션(Pagination) 및 검색 데이터를 보낼 때 사용하는 쿼리 파라미터(Q)
-        }
-      })
+      const response = await axios.get<Employee[]> ('http://localhost:8080/api/hr/employees');
+
+      setEmployees(response.data);
     }catch (error) {
-      console.error()
+      console.error('직원 목록 조회 실패: ', error);
+      setModalMessage('직원 목록을 불러오지 못했습니다.');
+      setIsModalOpen(true);
     }
   }
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
