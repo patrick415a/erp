@@ -33,6 +33,10 @@ export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  //재고 검색
+  const [searchInput, setSearchInput] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
+
   //신규 품목 등록창
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -187,6 +191,20 @@ export default function InventoryPage() {
     }
   };
 
+  //품목명 또는 품목 코드 검색
+  const handleSearch = () => {
+    setSearchKeyword(searchInput.trim());
+  };
+
+  //검색 결과 필터링
+  const filteredItems = items.filter((item) => {
+    const keyword = searchKeyword.toLowerCase();
+
+    return (
+      item.name.toLowerCase().includes(keyword) || item.id.toLowerCase().includes(keyword)
+    )
+  })
+
   useEffect(() => {
     fetchInventoryItems();
   }, []);
@@ -260,8 +278,13 @@ export default function InventoryPage() {
             <h2>현재고 현황</h2>
             <div className={dataViewStyles.panelActions}>
               <div className={view.search}>
-                <input className={formControlsStyles.input} placeholder="품목명 또는 코드 검색..." aria-label="품목명 또는 코드 검색"/>
-                <button className={buttonStyles.button} data-variant="outline" data-size="small">검색</button>
+                <input className={formControlsStyles.input} placeholder="품목명 또는 코드 검색..." aria-label="품목명 또는 코드 검색" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}/>
+                <button className={buttonStyles.button} data-variant="outline" data-size="small" onClick={handleSearch}>검색</button>
               </div>
             </div>
           </header>
@@ -285,12 +308,14 @@ export default function InventoryPage() {
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: '30px' }}>재고 목록을 불러오는 중입니다...</td>
                   </tr>
-                ) : items.length === 0 ? (
+                ) : filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '30px' }}>등록된 재고가 없습니다.</td>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '30px' }}>
+                      {searchKeyword ? '검색 결과가 없습니다.' : '등록된 재고가 없습니다.'}
+                    </td>
                   </tr>
                 ) : (
-                  items.map((item) => (
+                  filteredItems.map((item) => (
                     <tr key={item.id}>
                       <td>
                         <strong>{item.id}</strong>
