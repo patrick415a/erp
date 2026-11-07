@@ -3,14 +3,15 @@ package com.example.demo.controller;
 import com.example.demo.config.JwtProvider;
 import com.example.demo.dto.MemberLoginDto;
 import com.example.demo.dto.MemberRegisterDto;
+import com.example.demo.dto.MemberUpdateDto;
 import com.example.demo.dto.PasswordChangeDto;
 import com.example.demo.dto.TokenResponseDto;
 import com.example.demo.service.MemberService;
+import io.jsonwebtoken.JwtException;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/members")
@@ -58,8 +59,10 @@ public class MemberController {
 
     // 비밀번호 변경 (마이페이지용)
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestHeader("Authorization") String token,
-                                            @RequestBody PasswordChangeDto dto) {
+    public ResponseEntity<?> changePassword(
+        @RequestHeader("Authorization") String token,
+        @RequestBody PasswordChangeDto dto
+    ) {
         try {
             // "Bearer " 문자열 제거 후 토큰 파싱
             String actualToken = token.substring(7);
@@ -71,5 +74,25 @@ public class MemberController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<String> updateProfile(
+        @RequestHeader(value = "Authorization", required = false) String authorization,
+        @RequestBody MemberUpdateDto profile
+    ) {
+        if (authorization == null || !authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        String email;
+        try {
+            email = jwtProvider.getEmailFromToken(authorization.substring(7));
+        } catch (JwtException | IllegalArgumentException e) {
+            return ResponseEntity.status(401).body("로그인이 만료되었습니다.");
+        }
+        if (email == null || email.isBlank()) return ResponseEntity.status(401).body("로그인이 필요합니다.");
+
+        memberService.updateProfile(email, profile);
+        return ResponseEntity.ok("회원 정보를 수정했습니다.");
     }
 }

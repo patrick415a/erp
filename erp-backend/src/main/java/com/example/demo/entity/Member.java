@@ -1,15 +1,20 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
-
 @Entity
 // 오라클에서는 'MEMBER'가 예약어로 쓰이는 경우가 있어 보통 'MEMBERS'로 명명합니다.
-@Table(name = "MEMBERS")
+@Table(
+    name = "MEMBERS",
+    uniqueConstraints = @UniqueConstraint(
+        name = "UK_MEMBERS_PROVIDER",
+        columnNames = { "provider", "provider_id" }
+    )
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 기본 생성자 무분별한 사용 방지
 @AllArgsConstructor
@@ -55,6 +60,12 @@ public class Member {
     @Column(length = 20)
     private String gender; // male, female, other
 
+    @Column(name = "provider", length = 30)
+    private String provider;
+
+    @Column(name = "provider_id", length = 100)
+    private String providerId;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt; // 가입일
@@ -65,5 +76,11 @@ public class Member {
     // 💡 이 부분을 새로 추가해 주세요! (비밀번호 변경을 허용하는 메서드)
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public void updateProfile(String tel, String address, String detailAddress) {
+        if (tel != null) this.tel = tel;
+        if (address != null) this.address = address;
+        if (detailAddress != null) this.detailAddress = detailAddress;
     }
 }

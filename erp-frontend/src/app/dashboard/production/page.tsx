@@ -9,6 +9,7 @@ import AlertModal from '@/components/modal/AlertModal';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import view from '@/assets/dashboard/WorkPage.module.scss';
+import modalStyles from '@/assets/modal/WorkFormModal.module.scss';
 
 interface ProductionOrder {
   id: string;
@@ -67,18 +68,6 @@ export default function ProductionPage() {
     progress: 0,
     dueDate: ''
   })
-
-  const inputStyle = {
-    width: '100%',
-    height: '42px',
-    padding: '0 12px',
-    border: '1px solid #d9e0ec',
-    borderRadius: '8px',
-    fontSize: '14px',
-    backgroundColor: '#ffffff',
-    color: '#1e293b',
-    boxSizing: 'border-box',
-  } as const;
 
   const getBadgeStyle = (status: string) => {
     switch (status) {
@@ -308,17 +297,13 @@ export default function ProductionPage() {
                         <td>
                           <div className={view.progress}>
                             <span>{order.progress}%</span>
-                            <div className={view.progressTrack}>
-                              <div
-                                className={view.progressFill}
-                                data-completed={order.status === 'completed' || undefined}
-                                role="progressbar"
-                                style={{ width: order.progress + '%' }}
-                                aria-valuenow={order.progress}
-                                aria-valuemin={0}
-                                aria-valuemax={100}
-                              />
-                            </div>
+                            <progress
+                              className={view.progressBar}
+                              data-completed={order.status === 'completed' || undefined}
+                              value={order.progress}
+                              max={100}
+                              aria-label={`${order.id} 진행률`}
+                            />
                           </div>
                         </td>
                         <td>{order.dueDate}</td>
@@ -346,34 +331,12 @@ export default function ProductionPage() {
       </Layout>
 
       {isAddOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-          }}
-        >
+        <div className={modalStyles.overlay} data-order>
           <div
+            className={modalStyles.dialog}
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-order-title"
-            style={{
-              backgroundColor: 'white',
-              padding: '28px',
-              borderRadius: '12px',
-              width: '420px',
-              maxWidth: '90vw',
-              maxHeight: '85vh',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.15)',
-            }}
           >
             <h2 id="add-order-title">신규 생산 오더 등록</h2>
 
@@ -382,7 +345,7 @@ export default function ProductionPage() {
             <label htmlFor="new-product">제품명</label>
             <input
               id="new-product"
-              style={inputStyle}
+              className={modalStyles.orderInput}
               placeholder="제품명을 입력하세요"
               value={newOrder.productName}
               onChange={(e) =>
@@ -398,7 +361,7 @@ export default function ProductionPage() {
               id="new-quantity"
               type="number"
               min="1"
-              style={inputStyle}
+              className={modalStyles.orderInput}
               value={newOrder.quantity}
               onChange={(e) =>
                 setNewOrder({
@@ -411,7 +374,7 @@ export default function ProductionPage() {
             <label htmlFor="new-status">생산 상태</label>
             <select
               id="new-status"
-              style={inputStyle}
+              className={modalStyles.orderInput}
               value={newOrder.status}
               onChange={(e) =>
                 setNewOrder({
@@ -431,7 +394,7 @@ export default function ProductionPage() {
               type="number"
               min="0"
               max="100"
-              style={inputStyle}
+              className={modalStyles.orderInput}
               value={newOrder.progress}
               onChange={(e) =>
                 setNewOrder({
@@ -445,7 +408,7 @@ export default function ProductionPage() {
             <input
               id="new-due-date"
               type="date"
-              style={inputStyle}
+              className={modalStyles.orderInput}
               value={newOrder.dueDate}
               onChange={(e) =>
                 setNewOrder({
@@ -455,27 +418,17 @@ export default function ProductionPage() {
               }
             />
 
-            <div
-              style={{
-                marginTop: '12px',
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '10px',
-              }}
-            >
+            <div className={modalStyles.actions}>
               <button
                 type="button"
                 className={buttonStyles.button}
+                data-variant="outline"
                 onClick={() => setIsAddOpen(false)}
               >
                 취소
               </button>
 
-              <button
-                type="button"
-                className={buttonStyles.button}
-                onClick={handleAddOrder}
-              >
+              <button type="button" className={buttonStyles.button} onClick={handleAddOrder}>
                 등록하기
               </button>
             </div>
@@ -484,107 +437,116 @@ export default function ProductionPage() {
       )}
 
       {isEditOpen && selectedOrder && (
-        <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}
-        >
-          <div role='dialog' aria-modal="true" aria-labelledby='edit-order-title'
-          style={{
-            backgroundColor: 'white',
-            padding: '28px',
-            borderRadius: '12px',
-            width: '420px',
-            maxWidth: '90vw',
-            maxHeight: '85vh',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.15)'
-          }}
+        <div className={modalStyles.overlay} data-order>
+          <div
+            className={modalStyles.dialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-order-title"
           >
-            <h2 id='edit-order-title'>생산 오더 수정</h2>
+            <h2 id="edit-order-title">생산 오더 수정</h2>
 
             <p>오더 번호: {selectedOrder.id}</p>
 
-            <label>제품명</label>
-            <input style={inputStyle} value={selectedOrder.productName}
-            onChange={(e) => setSelectedOrder({
-              ...selectedOrder,
-              productName: e.target.value
-            })}
+            <label htmlFor="edit-product">제품명</label>
+            <input
+              id="edit-product"
+              className={modalStyles.orderInput}
+              value={selectedOrder.productName}
+              onChange={(e) =>
+                setSelectedOrder({
+                  ...selectedOrder,
+                  productName: e.target.value,
+                })
+              }
             />
 
-            <label>생산 수량</label>
-            <input type='number' min="1" style={inputStyle} value={selectedOrder.quantity}
-            onChange={(e) => setSelectedOrder({
-              ...selectedOrder,
-              quantity: Number(e.target.value)
-            })}
+            <label htmlFor="edit-quantity">생산 수량</label>
+            <input
+              id="edit-quantity"
+              type="number"
+              min="1"
+              className={modalStyles.orderInput}
+              value={selectedOrder.quantity}
+              onChange={(e) =>
+                setSelectedOrder({
+                  ...selectedOrder,
+                  quantity: Number(e.target.value),
+                })
+              }
             />
 
-            <label>생산 상태</label>
-            <select style={inputStyle} value={selectedOrder.status}
-            onChange={(e) => setSelectedOrder({
-              ...selectedOrder,
-              status: e.target.value as ProductionOrder['status']
-            })}
+            <label htmlFor="edit-status">생산 상태</label>
+            <select
+              id="edit-status"
+              className={modalStyles.orderInput}
+              value={selectedOrder.status}
+              onChange={(e) =>
+                setSelectedOrder({
+                  ...selectedOrder,
+                  status: e.target.value as ProductionOrder['status'],
+                })
+              }
             >
               <option value="planning">생산 대기</option>
               <option value="progress">생산 중</option>
               <option value="completed">생산 완료</option>
             </select>
 
-            <label>진행률 (%)</label>
-            <input type='number' min="0" max="100" style={inputStyle} value={selectedOrder.progress}
-            onChange={(e) => setSelectedOrder({
-              ...selectedOrder,
-              progress: Number(e.target.value)
-            })}
+            <label htmlFor="edit-progress">진행률 (%)</label>
+            <input
+              id="edit-progress"
+              type="number"
+              min="0"
+              max="100"
+              className={modalStyles.orderInput}
+              value={selectedOrder.progress}
+              onChange={(e) =>
+                setSelectedOrder({
+                  ...selectedOrder,
+                  progress: Number(e.target.value),
+                })
+              }
             />
 
-            <label>납기일</label>
-            <input type='date' style={inputStyle} value={selectedOrder.dueDate}
-            onChange={(e) => setSelectedOrder({
-              ...selectedOrder,
-              dueDate: e.target.value
-            })}
+            <label htmlFor="edit-due-date">납기일</label>
+            <input
+              id="edit-due-date"
+              type="date"
+              className={modalStyles.orderInput}
+              value={selectedOrder.dueDate}
+              onChange={(e) =>
+                setSelectedOrder({
+                  ...selectedOrder,
+                  dueDate: e.target.value,
+                })
+              }
             />
-            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
-              <button type='button' className={buttonStyles.button}
-              onClick={() => {
-                setIsEditOpen(false);
-                setSelectedOrder(null);
-              }}
-              style={{
-                backgroundColor: '#f1f5f9',
-                color: '#475569',
-                border: '1px solid #cbd5e1'
-              }}
-              >취소</button>
+            <div className={modalStyles.actions}>
+              <button
+                type="button"
+                className={buttonStyles.button}
+                data-variant="outline"
+                onClick={() => {
+                  setIsEditOpen(false);
+                  setSelectedOrder(null);
+                }}
+              >
+                취소
+              </button>
 
-              <button type='button' className={buttonStyles.button} onClick={handleDeleteOrder}
-              style={{
-                backgroundColor: '#fff',
-                color: '#dc2626',
-                border: '1px solid #fca5a5'
-              }}
-              >오더 삭제</button>
+              <button
+                type="button"
+                className={buttonStyles.button}
+                data-variant="danger"
+                onClick={handleDeleteOrder}
+              >
+                오더 삭제
+              </button>
 
-              <button type='button' className={buttonStyles.button} onClick={handleUpdateOrder}
-              style={{
-                backgroundColor: '#3461eb',
-                color: '#fff',
-                border: '1px solid #3461eb'
-              }}
-              >수정 저장</button>
+              <button type="button" className={buttonStyles.button} onClick={handleUpdateOrder}>
+                수정 저장
+              </button>
             </div>
           </div>
         </div>

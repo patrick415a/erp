@@ -26,7 +26,12 @@ export function MonthlyScheduleList({
   // 달력과 같은 데이터를 사용합니다. 원본 배열을 바꾸지 않고 선택한 달만 날짜순으로 정렬합니다.
   const monthlySchedules = schedules
     .filter((schedule) => schedule.date.startsWith(monthPrefix))
-    .sort((a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt));
+    .sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) ||
+        (a.time ?? '24:00').localeCompare(b.time ?? '24:00') ||
+        a.createdAt.localeCompare(b.createdAt),
+    );
   const groups = new Map<string, { schedules: Schedule[]; holidays: Holiday[] }>();
 
   for (const schedule of monthlySchedules) {
@@ -99,10 +104,15 @@ export function MonthlyScheduleList({
                           type="button"
                           className={styles.scheduleRow}
                           onClick={() => onSelectDate(day)}
-                          aria-label={`${month}월 ${day}일 ${schedule.content} 일정 열기`}
+                          aria-label={`${month}월 ${day}일 ${schedule.time ?? ''} ${schedule.title || schedule.content} 일정 열기`}
                         >
                           <span className={styles.scheduleDot} />
-                          <span className={styles.content}>{schedule.content}</span>
+                          <span className={styles.content}>
+                            {schedule.time && (
+                              <time dateTime={schedule.time}>{schedule.time} · </time>
+                            )}
+                            {schedule.title || schedule.content}
+                          </span>
                           <span data-status={schedule.status} className={modalPartsStyles.badge}>
                             {schedule.status}
                           </span>

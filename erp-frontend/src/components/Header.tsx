@@ -2,8 +2,11 @@
 import axios from 'axios';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { setLogout } from '@/store/authSlice';
 import { Brand } from './Brand';
 import styles from '@/assets/layout/Header.module.scss';
+import buttons from '@/assets/common/Button.module.scss';
 import { Icon } from './ui/Icon';
 import AlertModal from '@/components/modal/AlertModal';
 
@@ -22,6 +25,7 @@ export function Header() {
   };
   const router = useRouter();
   const pathname = usePathname();
+  const dispatch = useDispatch();
   // 기존 로그아웃 처리: 토큰과 Axios 헤더를 지우고 로그인으로 이동합니다.
 
   // 모달 상태 관리
@@ -30,12 +34,13 @@ export function Header() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    localStorage.removeItem('token');
+    dispatch(setLogout());
     delete axios.defaults.headers.common['Authorization'];
     router.push('/');
   };
 
   const handleLogout = () => {
+    setIsMobileMenuOpen(false);
     setModalMessage('로그아웃되었습니다');
     setIsModalOpen(true);
   };
@@ -99,7 +104,15 @@ export function Header() {
             </a>
           ))}
           <a href="/dashboard/mypage">마이페이지</a>
-          <a href="/logout">로그아웃</a>
+          <button
+            type="button"
+            className={buttons.button}
+            data-variant="ghost"
+            data-full-width
+            onClick={handleLogout}
+          >
+            로그아웃
+          </button>
         </nav>
       </header>
       <AlertModal isOpen={isModalOpen} message={modalMessage} onClose={handleCloseModal} />

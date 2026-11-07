@@ -12,10 +12,18 @@ import { setLogin } from '@/store/authSlice';
 import Link from 'next/link';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import styles from '@/assets/auth/AuthForm.module.scss';
 import AlertModal from '@/components/modal/AlertModal';
+
+type SocialProvider = 'google' | 'kakao';
+
+function socialLoginApi() {
+  const base =
+    process.env.NEXT_PUBLIC_ERP_API_URL || 'http://' + window.location.hostname + ':8080';
+  return base.replace(/\/$/, '') + '/api/members/oauth';
+}
 
 /*export const metadata: Metadata = {
   title: "로그인",
@@ -35,6 +43,112 @@ export default function Home() {
 
   // 확인 버튼을 눌렀을 때 이동할 경로를 저장 (로그인 성공 시 대시보드로 가기 위함)
   const [nextRoute, setNextRoute] = useState('/dashboard');
+  const [isSocialLoginPending, setIsSocialLoginPending] = useState(false);
+
+  const showLoginError = useCallback((message: string) => {
+    setModalMessage(message);
+    setNextRoute('');
+    setIsModalOpen(true);
+  }, []);
+
+  const completeLogin = useCallback(
+    (token: string) => {
+      dispatch(setLogin({ token }));
+      axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+      setModalMessage('로그인되었습니다.');
+      setNextRoute('/dashboard');
+      setIsModalOpen(true);
+    },
+    [dispatch],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const start = window.setTimeout(() => {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
+      const error = url.searchParams.get('error');
+      if (!code && !state && !error) return;
+
+      for (const key of [
+        'code',
+        'state',
+        'error',
+        'error_description',
+        'scope',
+        'authuser',
+        'prompt',
+      ]) {
+        url.searchParams.delete(key);
+      }
+      window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+      if (!code || !state || error) {
+        showLoginError(
+          error === 'access_denied'
+            ? '소셜 로그인이 취소되었습니다.'
+            : '소셜 로그인 요청을 확인할 수 없습니다.',
+        );
+        return;
+      }
+
+      setIsSocialLoginPending(true);
+      axios
+        .post<{ token: string }>(
+          socialLoginApi() + '/complete',
+          { code, state },
+          {
+            withCredentials: true,
+            signal: controller.signal,
+            timeout: 25000,
+          },
+        )
+        .then(({ data }) => {
+          if (!data.token) throw new Error('Missing login token');
+          completeLogin(data.token);
+        })
+        .catch((error) => {
+          if (!controller.signal.aborted) {
+            const conflict = axios.isAxiosError(error) && error.response?.status === 409;
+            showLoginError(
+              conflict
+                ? '같은 이메일로 가입한 계정이 있습니다. 기존 방식으로 로그인해 주세요.'
+                : '소셜 로그인에 실패했습니다. 처음부터 다시 시도해 주세요.',
+            );
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsSocialLoginPending(false);
+        });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(start);
+      controller.abort();
+    };
+  }, [completeLogin, showLoginError]);
+
+  const startSocialLogin = async (provider: SocialProvider) => {
+    setIsSocialLoginPending(true);
+    try {
+      const { data } = await axios.post<{ authorizationUrl: string }>(
+        socialLoginApi() + '/' + provider + '/authorize',
+        null,
+        { withCredentials: true, timeout: 8000 },
+      );
+      window.location.assign(data.authorizationUrl);
+    } catch (error) {
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      showLoginError(
+        status === 503
+          ? '소셜 로그인 서버 설정이 필요합니다.'
+          : status === 400
+            ? '현재 로그인 화면 주소와 소셜 로그인 설정이 일치하지 않습니다.'
+            : '소셜 로그인을 시작하지 못했습니다. 백엔드 연결을 확인해 주세요.',
+      );
+      setIsSocialLoginPending(false);
+    }
+  };
 
   // 로그인 폼 제출 핸들러
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -47,27 +161,10 @@ export default function Home() {
         password,
       });
 
-      if (response.status === 200) {
-        // 1. 백엔드에서 발급한 JWT 토큰을 localStorage에 저장
-        const token = response.data.token;
-        // localStorage.setItem('token', token);
-        dispatch(setLogin(token));
-
-        // 2. 이후 모든 axios 요청 헤더에 JWT 토큰을 자동 포함하도록 설정
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-        // alert("로그인 성공!");
-        // router.push("/dashboard"); // 로그인 성공 후 이동할 메인 페이지 (필요에 따라 수정)
-        setModalMessage('로그인성공');
-        setNextRoute('/dashboard');
-        setIsModalOpen(true);
-      }
+      if (response.status === 200) completeLogin(response.data.token);
     } catch (error) {
       console.error('로그인 에러:', error);
-      // alert("이메일 또는 비밀번호를 확인해주세요.");
-      setModalMessage('이메일 또는 비밀번호를 확인해주세요.');
-      setNextRoute('');
-      setIsModalOpen(true);
+      showLoginError('이메일 또는 비밀번호를 확인해 주세요.');
     }
   };
 
@@ -127,6 +224,7 @@ export default function Home() {
             </div>
             <button
               type="submit"
+              disabled={isSocialLoginPending}
               data-full-width={true}
               className={`${buttonStyles.button} ${styles.submit}`}
             >
@@ -134,10 +232,22 @@ export default function Home() {
             </button>
             <div className={styles.divider}>소셜 로그인</div>
             <div className={styles.social}>
-              <button type="button" data-provider="google" className={buttonStyles.socialButton}>
+              <button
+                type="button"
+                data-provider="google"
+                className={buttonStyles.socialButton}
+                disabled={isSocialLoginPending}
+                onClick={() => void startSocialLogin('google')}
+              >
                 Google로 로그인
               </button>
-              <button type="button" data-provider="kakao" className={buttonStyles.socialButton}>
+              <button
+                type="button"
+                data-provider="kakao"
+                className={buttonStyles.socialButton}
+                disabled={isSocialLoginPending}
+                onClick={() => void startSocialLogin('kakao')}
+              >
                 Kakao로 로그인
               </button>
             </div>

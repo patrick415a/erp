@@ -5,7 +5,6 @@ import buttonStyles from '@/assets/common/Button.module.scss';
 import { Icon } from '@/components/ui/Icon';
 import axios from 'axios';
 import { Layout } from '@/components/Layout';
-import AlertModal from '@/components/modal/AlertModal';
 import { useEffect, useState } from 'react';
 import view from '@/assets/dashboard/WorkPage.module.scss';
 
@@ -19,28 +18,18 @@ interface Employee {
 }
 
 export default function HrPage() {
-  // 모달 상태 관리
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
-
   const [employees, setEmployees] = useState<Employee[]>([]);
 
   //백엔드 API 호출 비동기 (렉방지, 가독성)
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get<Employee[]> ('http://localhost:8080/api/hr/employees');
+      const response = await axios.get<Employee[]>('http://localhost:8080/api/hr/employees');
 
       setEmployees(response.data);
-    }catch (error) {
+    } catch (error) {
       console.error('직원 목록 조회 실패: ', error);
-      setModalMessage('직원 목록을 불러오지 못했습니다.');
-      setIsModalOpen(true);
     }
-  }
+  };
 
   useEffect(() => {
     fetchEmployees();
@@ -167,7 +156,6 @@ export default function HrPage() {
           </section>
         </div>
       </Layout>
-      <AlertModal isOpen={isModalOpen} message={modalMessage} onClose={handleCloseModal} />
     </>
   );
 }

@@ -15,6 +15,9 @@ const pageNames: Record<string, string> = {
   '/dashboard/settings': '기준정보',
   '/dashboard/calendar': '일정관리',
   '/dashboard/mypage': '마이페이지',
+  '/dashboard/support': '기술지원',
+  '/dashboard/terms': '이용약관',
+  '/dashboard/manual': '사용자 매뉴얼',
 };
 
 // 공통 틀의 디자인만 담당합니다. 업무별 입력·조회 기능은 children에 그대로 있습니다.

@@ -2,7 +2,10 @@
 export interface Schedule {
   id: string;
   date: string;
+  title?: string;
+  time?: string;
   content: string;
   status: '대기' | '진행' | '완료';
   createdAt: string;
+  notifiedFor?: string;
 }

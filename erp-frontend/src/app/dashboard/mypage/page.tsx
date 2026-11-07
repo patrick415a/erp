@@ -6,6 +6,10 @@ import formControlsStyles from '@/assets/common/FormControls.module.scss';
 import buttonStyles from '@/assets/common/Button.module.scss';
 
 import { Layout } from '@/components/Layout';
+import { useSchedules } from '@/components/calendar/scheduleStorage';
+import modalStyles from '@/assets/modal/ModalParts.module.scss';
+import settingsStyles from '@/assets/dashboard/settings/Settings.module.scss';
+import Link from 'next/link';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -21,6 +25,13 @@ export default function MyPageClient() {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordRepeat, setNewPasswordRepeat] = useState('');
+  const [tab, setTab] = useState<'account' | 'message' | 'schedule'>('account');
+  const [message, setMessage] = useState('');
+  const [messageNotice, setMessageNotice] = useState('');
+  const schedules = useSchedules();
+  const orderedSchedules = [...schedules].sort(
+    (a, b) => a.date.localeCompare(b.date) || (a.time ?? '24:00').localeCompare(b.time ?? '24:00'),
+  );
 
   const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,7 +47,7 @@ export default function MyPageClient() {
       await axios.post(
         'http://127.0.0.1:8080/api/members/change-password',
         { oldPassword, newPassword },
-        { headers: { Authorization: `Bearer ${token}` } } // JWT 토큰을 헤더에 담아 전송
+        { headers: { Authorization: `Bearer ${token}` } }, // JWT 토큰을 헤더에 담아 전송
       );
       alert('비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.');
 
@@ -88,85 +99,197 @@ export default function MyPageClient() {
         <header className={dataViewStyles.pageHeader}>
           <div>
             <h1>마이페이지</h1>
-            <p>내 정보와 비밀번호를 변경합니다</p>
+            <p>계정 설정과 저장된 일정을 확인합니다.</p>
           </div>
         </header>
-        <div className={styles.content}>
-          <form className={view.accountForm}>
-            <h3 className={styles.subTitle}>내 정보 수정</h3>
-            <div className={styles.inputGroup}>
-              <div className={contentStyles.fieldSpacing}>
-                <label className={formControlsStyles.label}>직급</label>
-                <input type="text" required className={formControlsStyles.input} />
+        <nav className={dataViewStyles.pageHeader} aria-label="마이페이지 메뉴">
+          <div className={dataViewStyles.pageActions}>
+            {(
+              [
+                ['account', '계정 설정'],
+                ['message', '관리자 쪽지'],
+                ['schedule', '내 일정'],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={buttonStyles.button}
+                data-size="small"
+                data-variant={tab === id ? undefined : 'outline'}
+                aria-pressed={tab === id}
+                onClick={() => setTab(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </nav>
+        {tab === 'account' && (
+          <div className={styles.content}>
+            <form className={view.accountForm}>
+              <h3 className={styles.subTitle}>내 정보 수정</h3>
+              <div className={styles.inputGroup}>
+                <div className={contentStyles.fieldSpacing}>
+                  <label className={formControlsStyles.label}>직급</label>
+                  <input type="text" required className={formControlsStyles.input} />
+                </div>
+                <div className={contentStyles.fieldSpacing}>
+                  <label className={formControlsStyles.label}>전화번호</label>
+                  <input type="text" required className={formControlsStyles.input} />
+                </div>
               </div>
               <div className={contentStyles.fieldSpacing}>
-                <label className={formControlsStyles.label}>전화번호</label>
+                <label className={formControlsStyles.label}>주소</label>
+                <div className={styles.address}>
+                  <input type="text" readOnly className={formControlsStyles.input} />
+                  <button
+                    type="button"
+                    onClick={handleAddressSearch}
+                    data-variant="outline"
+                    className={buttonStyles.button}
+                  >
+                    주소 검색
+                  </button>
+                </div>
+              </div>
+              <div className={contentStyles.fieldSpacing}>
+                <label className={formControlsStyles.label}>상세주소</label>
                 <input type="text" required className={formControlsStyles.input} />
               </div>
-            </div>
-            <div className={contentStyles.fieldSpacing}>
-              <label className={formControlsStyles.label}>주소</label>
-              <div className={styles.address}>
-                <input type="text" readOnly className={formControlsStyles.input} />
-                <button
-                  type="button"
-                  onClick={handleAddressSearch}
-                  data-variant="outline"
-                  className={buttonStyles.button}
-                >
-                  주소 검색
+              <div className={buttonStyles.buttonLeft}>
+                <button type="submit" data-variant="primary" className={buttonStyles.button}>
+                  내 정보 수정
                 </button>
               </div>
-            </div>
-            <div className={contentStyles.fieldSpacing}>
-              <label className={formControlsStyles.label}>상세주소</label>
-              <input type="text" required className={formControlsStyles.input} />
-            </div>
-            <div className={buttonStyles.buttonLeft}>
-              <button type="submit" data-variant="primary" className={buttonStyles.button}>
-                내 정보 수정
+            </form>
+            <form onSubmit={handleChangePassword} className={view.accountForm}>
+              <h3 className={styles.subTitle}>비밀번호 변경</h3>
+              <div className={contentStyles.fieldSpacing}>
+                <label className={formControlsStyles.label}>기존 비밀번호</label>
+                <input
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  required
+                  className={formControlsStyles.input}
+                />
+              </div>
+              <div className={contentStyles.fieldSpacing}>
+                <label className={formControlsStyles.label}>새 비밀번호</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  className={formControlsStyles.input}
+                />
+              </div>
+              <div className={contentStyles.fieldSpacing}>
+                <label className={formControlsStyles.label}>새 비밀번호 확인</label>
+                <input
+                  type="password"
+                  value={newPasswordRepeat}
+                  onChange={(e) => setNewPasswordRepeat(e.target.value)}
+                  required
+                  className={formControlsStyles.input}
+                />
+              </div>
+              <div className={buttonStyles.buttonLeft}>
+                <button type="submit" data-variant="primary" className={buttonStyles.button}>
+                  비밀번호 변경하기
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+        {tab === 'message' && (
+          <section className={settingsStyles.mainPanel}>
+            <h3>관리자 쪽지</h3>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                setMessageNotice(
+                  message.trim()
+                    ? '내용을 확인했습니다. 쪽지 전송은 아직 연결되지 않았습니다.'
+                    : '쪽지 내용을 입력해 주세요.',
+                );
+              }}
+            >
+              <div className={settingsStyles.formGroup}>
+                <label htmlFor="message-recipient">받는 사람</label>
+                <input id="message-recipient" value="시스템 관리자" readOnly />
+              </div>
+              <div className={settingsStyles.formGroup}>
+                <label htmlFor="admin-message">쪽지 내용</label>
+                <textarea
+                  id="admin-message"
+                  className={formControlsStyles.textarea}
+                  value={message}
+                  onChange={(event) => {
+                    setMessage(event.target.value);
+                    setMessageNotice('');
+                  }}
+                  required
+                  maxLength={2000}
+                />
+              </div>
+              <button className={buttonStyles.button} type="submit">
+                쪽지 내용 확인
               </button>
+              {messageNotice && <p role="status">{messageNotice}</p>}
+            </form>
+          </section>
+        )}
+        {tab === 'schedule' && (
+          <section className={dataViewStyles.panel}>
+            <header className={dataViewStyles.panelHeader}>
+              <h2>이 브라우저에 저장된 일정</h2>
+              <Link
+                href="/dashboard/calendar"
+                className={buttonStyles.button}
+                data-variant="outline"
+                data-size="small"
+              >
+                일정관리 열기
+              </Link>
+            </header>
+            <div className={dataViewStyles.tableScroller}>
+              <table className={dataViewStyles.table}>
+                <thead>
+                  <tr>
+                    <th>날짜</th>
+                    <th>알림 시간</th>
+                    <th>일정</th>
+                    <th>상태</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderedSchedules.length ? (
+                    orderedSchedules.map((schedule) => (
+                      <tr key={schedule.id}>
+                        <td>{schedule.date}</td>
+                        <td>{schedule.time ?? '—'}</td>
+                        <td>{schedule.title || schedule.content}</td>
+                        <td>
+                          <span className={modalStyles.badge} data-status={schedule.status}>
+                            {schedule.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className={dataViewStyles.tableMessage}>
+                        저장된 일정이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          </form>
-          <form onSubmit={handleChangePassword} className={view.accountForm}>
-            <h3 className={styles.subTitle}>비밀번호 변경</h3>
-            <div className={contentStyles.fieldSpacing}>
-              <label className={formControlsStyles.label}>기존 비밀번호</label>
-              <input
-                type="password"
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
-                required
-                className={formControlsStyles.input}
-              />
-            </div>
-            <div className={contentStyles.fieldSpacing}>
-              <label className={formControlsStyles.label}>새 비밀번호</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                className={formControlsStyles.input}
-              />
-            </div>
-            <div className={contentStyles.fieldSpacing}>
-              <label className={formControlsStyles.label}>새 비밀번호 확인</label>
-              <input
-                type="password"
-                value={newPasswordRepeat}
-                onChange={(e) => setNewPasswordRepeat(e.target.value)}
-                required
-                className={formControlsStyles.input}
-              />
-            </div>
-            <div className={buttonStyles.buttonLeft}>
-              <button type="submit" data-variant="primary" className={buttonStyles.button}>
-                비밀번호 변경하기
-              </button>
-            </div>
-          </form>
-        </div>
+          </section>
+        )}
       </div>
     </Layout>
   );

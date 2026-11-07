@@ -6,23 +6,21 @@ import buttonStyles from '@/assets/common/Button.module.scss';
 
 import { Icon } from '@/components/ui/Icon';
 import { Temporal } from '@js-temporal/polyfill';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import ModalLayout from './ModalLayout';
 import type { Schedule } from '@/app/types/schedule';
 export type { Schedule } from '@/app/types/schedule';
 
 interface ScheduleModalProps {
-  isOpen: boolean;
   onClose: () => void;
   year: number;
   month: number;
-  selectedDate: number | null;
+  selectedDate: number;
   schedules: Schedule[];
-  setSchedules: React.Dispatch<React.SetStateAction<Schedule[]>>;
+  setSchedules: (update: (current: Schedule[]) => Schedule[]) => void;
 }
 
 export default function ScheduleModal({
-  isOpen,
   onClose,
   year,
   month,
@@ -30,6 +28,8 @@ export default function ScheduleModal({
   schedules,
   setSchedules,
 }: ScheduleModalProps) {
+  const [formTitle, setFormTitle] = useState('');
+  const [formTime, setFormTime] = useState('');
   const [formContent, setFormContent] = useState('');
   const [formStatus, setFormStatus] = useState<'대기' | '진행' | '완료'>('대기');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -37,55 +37,55 @@ export default function ScheduleModal({
   //커스텀 셀렉트 박스 열림 / 닫힘 상태
   const [isSelectOpen, setIsSelectOpen] = useState(false);
 
-  //모달이 열리거나 날짜가 바뀔대 입력창 초기화
-  useEffect(() => {
-    if (isOpen) {
-      setFormContent('');
-      setFormStatus('대기');
-      setEditingId(null);
-      setIsSelectOpen(false); //모달 열릴때 드롭다운 닫기
-    }
-  }, [isOpen, selectedDate]);
-
-  if (!isOpen || selectedDate === null) return null;
-
   const fullDate = `${year}-${String(month).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
 
+  const resetForm = () => {
+    setFormTitle('');
+    setFormTime('');
+    setFormContent('');
+    setFormStatus('대기');
+    setEditingId(null);
+    setIsSelectOpen(false);
+  };
+
   const handleSave = () => {
-    if (!formContent.trim()) return;
-
-    const currentTime = Temporal.Now.plainTimeISO().toString().split('.')[0];
-
+    const title = formTitle.trim();
+    const content = formContent.trim();
+    if (!title && !content) return;
+    const time = formTime || undefined;
     if (editingId) {
       setSchedules((prev) =>
         prev.map((sch) =>
           sch.id === editingId
             ? {
                 ...sch,
-                content: formContent,
+                title,
+                time,
+                content,
                 status: formStatus,
+                notifiedFor: sch.time === time ? sch.notifiedFor : undefined,
               }
-            : sch
-        )
+            : sch,
+        ),
       );
     } else {
-      setSchedules((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          date: fullDate,
-          content: formContent,
-          status: formStatus,
-          createdAt: currentTime,
-        },
-      ]);
+      const schedule: Schedule = {
+        id: crypto.randomUUID(),
+        date: fullDate,
+        title,
+        time,
+        content,
+        status: formStatus,
+        createdAt: Temporal.Now.plainTimeISO().toString({ smallestUnit: 'second' }),
+      };
+      setSchedules((prev) => [...prev, schedule]);
     }
-    setFormContent('');
-    setFormStatus('대기');
-    setEditingId(null);
+    resetForm();
   };
 
   const handleEdit = (sch: Schedule) => {
+    setFormTitle(sch.title ?? '');
+    setFormTime(sch.time ?? '');
     setFormContent(sch.content);
     setFormStatus(sch.status);
     setEditingId(sch.id);
@@ -95,15 +95,42 @@ export default function ScheduleModal({
     if (confirm('일정을 삭제하시겠습니까?')) {
       setSchedules((prev) => prev.filter((sch) => sch.id !== id));
       if (editingId === id) {
-        setFormContent('');
-        setEditingId(null);
+        resetForm();
       }
     }
   };
 
   return (
-    <ModalLayout isOpen={isOpen} onClose={onClose} title={`${month}월 ${selectedDate}일 업무 일정`}>
+    <ModalLayout isOpen onClose={onClose} title={`${month}월 ${selectedDate}일 업무 일정`}>
       <div className={modalPartsStyles.formGroup}>
+        <div className={formControlsStyles.field}>
+          <label className={formControlsStyles.label} htmlFor="schedule-title">
+            일정 제목
+          </label>
+          <input
+            id="schedule-title"
+            className={formControlsStyles.input}
+            value={formTitle}
+            onChange={(event) => setFormTitle(event.target.value)}
+            maxLength={100}
+          />
+        </div>
+        <div className={formControlsStyles.field}>
+          <label className={formControlsStyles.label} htmlFor="schedule-time">
+            알림 시간 (선택)
+          </label>
+          <input
+            id="schedule-time"
+            type="time"
+            className={formControlsStyles.input}
+            value={formTime}
+            onChange={(event) => setFormTime(event.target.value)}
+            aria-describedby="schedule-time-help"
+          />
+          <small id="schedule-time-help">
+            ERP를 열어 두면 알림이 표시됩니다. 소리를 들으려면 화면을 한 번 클릭해 주세요.
+          </small>
+        </div>
         <div className={formControlsStyles.selectContainer}>
           <div
             onClick={() => setIsSelectOpen(!isSelectOpen)}
@@ -132,6 +159,7 @@ export default function ScheduleModal({
         </div>
 
         <textarea
+          aria-label="일정 내용"
           placeholder="일정 내용을 입력하세요..."
           value={formContent}
           onChange={(e) => setFormContent(e.target.value)}
@@ -140,7 +168,13 @@ export default function ScheduleModal({
       </div>
 
       <div className={modalPartsStyles.actions}>
-        <button onClick={handleSave} data-variant="primary" className={buttonStyles.button}>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!formTitle.trim() && !formContent.trim()}
+          data-variant="primary"
+          className={buttonStyles.button}
+        >
           {editingId ? '수정' : '등록'}
         </button>
         <button onClick={onClose} data-variant="gray" className={buttonStyles.button}>
@@ -157,9 +191,10 @@ export default function ScheduleModal({
                 <span data-status={sch.status} className={modalPartsStyles.badge}>
                   {sch.status}
                 </span>
-                <span>{sch.createdAt}작성</span>
+                <span>{sch.time ? sch.time + ' 알림' : sch.createdAt + ' 작성'}</span>
               </div>
-              <div className="">{sch.content}</div>
+              {sch.title && <strong>{sch.title}</strong>}
+              {sch.content && <p>{sch.content}</p>}
               <div className={modalPartsStyles.actions}>
                 <button
                   onClick={() => handleEdit(sch)}
