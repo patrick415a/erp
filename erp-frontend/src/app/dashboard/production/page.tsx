@@ -5,7 +5,8 @@ import buttonStyles from '@/assets/common/Button.module.scss';
 import { Icon } from '@/components/ui/Icon';
 
 import { Layout } from '@/components/Layout';
-import AlertModal from '@/components/modal/AlertModal';
+import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
+import DeleteConfirmModal from '@/components/modal/DeleteConfirmModal';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import view from '@/assets/dashboard/WorkPage.module.scss';
@@ -21,13 +22,8 @@ interface ProductionOrder {
 }
 
 export default function ProductionPage() {
-  // 모달 상태 관리
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
+  const [notice, setNotice] = useState<AlertNotice | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   /*
     { id: "PRD-2023-001", productName: "알루미늄 프레임 A형", quantity: 500, status: "progress", progress: 65, dueDate: "2023-11-20" },
@@ -60,6 +56,7 @@ export default function ProductionPage() {
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const [newOrder, setNewOrder] = useState({
     productName: '',
@@ -100,18 +97,20 @@ export default function ProductionPage() {
   }, []);
 
   const handleAddOrder = async () => {
+    if (isSaving) return;
+
     if (
       !newOrder.productName.trim() ||
       !Number.isInteger(newOrder.quantity) ||
       newOrder.quantity <= 0 ||
       !newOrder.dueDate
     ) {
-      setModalMessage('제품명, 생산 수량, 납기일을 확인해주세요.');
-      setIsModalOpen(true);
+      setNotice({ message: '제품명, 생산 수량, 납기일을 확인해주세요.', status: 'error' });
       return;
     }
 
     try {
+      setIsSaving(true);
       const token = localStorage.getItem('token');
 
       await axios.post(
@@ -135,17 +134,17 @@ export default function ProductionPage() {
         dueDate: '',
       });
 
-      setModalMessage('생산 정보가 등록되었습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '생산 정보가 등록되었습니다.', status: 'success' });
     } catch (error) {
       console.error('생산 오더 등록 실패:', error);
-      setModalMessage('생산 정보 등록에 실패했습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '생산 정보 등록에 실패했습니다.', status: 'error' });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleUpdateOrder = async () => {
-    if (!selectedOrder) return;
+    if (!selectedOrder || isSaving) return;
 
     if (
       !selectedOrder.productName.trim() ||
@@ -156,12 +155,12 @@ export default function ProductionPage() {
       selectedOrder.progress > 100 ||
       !selectedOrder.dueDate
     ) {
-      setModalMessage('입력한 정보를 확인해주세요.');
-      setIsModalOpen(true);
+      setNotice({ message: '입력한 정보를 확인해주세요.', status: 'error' });
       return;
     }
 
     try {
+      setIsSaving(true);
       const token = localStorage.getItem('token');
 
       await axios.put(`http://localhost:8080/api/production/orders/${encodeURIComponent(selectedOrder.id)}`, selectedOrder, {
@@ -176,26 +175,20 @@ export default function ProductionPage() {
       setIsEditOpen(false);
       setSelectedOrder(null);
 
-      setModalMessage('생산 오더가 수정되었습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '생산 오더가 수정되었습니다.', status: 'success' });
     } catch (error) {
       console.error('생산 오더 수정 실패: ', error);
-
-      setModalMessage('생산 오더 수정에 실패했습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '생산 오더 수정에 실패했습니다.', status: 'error' });
+    } finally {
+      setIsSaving(false);
     }
   }
 
   const handleDeleteOrder = async () => {
-    if (!selectedOrder) return;
-
-    const confirmed = window.confirm(
-      `${selectedOrder.id} 생산 오더를 정말 삭제하시겠습니까?\n삭제한 데이터는 복구할 수 없습니다.`
-    );
-
-    if (!confirmed) return;
+    if (!selectedOrder || isSaving) return;
 
     try {
+      setIsSaving(true);
       const token = localStorage.getItem('token');
 
       await axios.delete(
@@ -212,12 +205,13 @@ export default function ProductionPage() {
       setIsEditOpen(false);
       setSelectedOrder(null);
 
-      setModalMessage('생산 오더가 삭제되었습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '생산 오더가 삭제되었습니다.', status: 'success' });
     } catch (error) {
       console.error('생산 오더 삭제 실패:', error);
-      setModalMessage('생산 오더 삭제에 실패했습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '생산 오더 삭제에 실패했습니다.', status: 'error' });
+    } finally {
+      setIsDeleteOpen(false);
+      setIsSaving(false);
     }
   };
 
@@ -424,11 +418,17 @@ export default function ProductionPage() {
                 className={buttonStyles.button}
                 data-variant="outline"
                 onClick={() => setIsAddOpen(false)}
+                disabled={isSaving}
               >
                 취소
               </button>
 
-              <button type="button" className={buttonStyles.button} onClick={handleAddOrder}>
+              <button
+                type="button"
+                className={buttonStyles.button}
+                onClick={handleAddOrder}
+                disabled={isSaving}
+              >
                 등록하기
               </button>
             </div>
@@ -436,7 +436,7 @@ export default function ProductionPage() {
         </div>
       )}
 
-      {isEditOpen && selectedOrder && (
+      {isEditOpen && selectedOrder && !isDeleteOpen && (
         <div className={modalStyles.overlay} data-order>
           <div
             className={modalStyles.dialog}
@@ -527,6 +527,7 @@ export default function ProductionPage() {
                 type="button"
                 className={buttonStyles.button}
                 data-variant="outline"
+                disabled={isSaving}
                 onClick={() => {
                   setIsEditOpen(false);
                   setSelectedOrder(null);
@@ -539,12 +540,18 @@ export default function ProductionPage() {
                 type="button"
                 className={buttonStyles.button}
                 data-variant="danger"
-                onClick={handleDeleteOrder}
+                disabled={isSaving}
+                onClick={() => setIsDeleteOpen(true)}
               >
                 오더 삭제
               </button>
 
-              <button type="button" className={buttonStyles.button} onClick={handleUpdateOrder}>
+              <button
+                type="button"
+                className={buttonStyles.button}
+                onClick={handleUpdateOrder}
+                disabled={isSaving}
+              >
                 수정 저장
               </button>
             </div>
@@ -552,7 +559,15 @@ export default function ProductionPage() {
         </div>
       )}
 
-      <AlertModal isOpen={isModalOpen} message={modalMessage} onClose={handleCloseModal} />
+      {isDeleteOpen && selectedOrder && (
+        <DeleteConfirmModal
+          message={`${selectedOrder.id} 생산 오더를 정말 삭제하시겠습니까?\n삭제한 데이터는 복구할 수 없습니다.`}
+          isDeleting={isSaving}
+          onClose={() => setIsDeleteOpen(false)}
+          onConfirm={handleDeleteOrder}
+        />
+      )}
+      {notice && <AlertModal isOpen {...notice} onClose={() => setNotice(null)} />}
     </>
   );
 }

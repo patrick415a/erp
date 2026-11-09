@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 import styles from '@/assets/auth/AuthForm.module.scss';
-import AlertModal from '@/components/modal/AlertModal';
+import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 
 type SocialProvider = 'google' | 'kakao';
 
@@ -38,26 +38,23 @@ export default function Home() {
   const [password, setPassword] = useState('');
 
   // 모달 상태 관리
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
+  const [notice, setNotice] = useState<AlertNotice | null>(null);
 
   // 확인 버튼을 눌렀을 때 이동할 경로를 저장 (로그인 성공 시 대시보드로 가기 위함)
   const [nextRoute, setNextRoute] = useState('/dashboard');
   const [isSocialLoginPending, setIsSocialLoginPending] = useState(false);
 
   const showLoginError = useCallback((message: string) => {
-    setModalMessage(message);
+    setNotice({ message, status: 'error' });
     setNextRoute('');
-    setIsModalOpen(true);
   }, []);
 
   const completeLogin = useCallback(
     (token: string) => {
       dispatch(setLogin({ token }));
       axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
-      setModalMessage('로그인되었습니다.');
+      setNotice({ message: '로그인되었습니다.', status: 'success' });
       setNextRoute('/dashboard');
-      setIsModalOpen(true);
     },
     [dispatch],
   );
@@ -169,7 +166,7 @@ export default function Home() {
   };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
+    setNotice(null);
     if (nextRoute) {
       router.push(nextRoute);
     }
@@ -261,7 +258,7 @@ export default function Home() {
           © Production Management System. All rights reserved.
         </footer>
       </main>
-      <AlertModal isOpen={isModalOpen} message={modalMessage} onClose={handleCloseModal} />
+      {notice && <AlertModal isOpen {...notice} onClose={handleCloseModal} />}
     </>
   );
 }

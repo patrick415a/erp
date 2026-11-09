@@ -55,6 +55,22 @@
   padding: 32px;
 }
 
+.alertIcon {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  color: #187257;
+  background: #eaf6f0;
+
+  &[data-status='error'] {
+    color: #bb4545;
+    background: #fff1f0;
+  }
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -78,6 +94,10 @@
   line-height: 1.8;
   overflow-wrap: anywhere;
   white-space: pre-line;
+
+  &[data-align='left'] {
+    text-align: left;
+  }
 }
 
 .formGroup {

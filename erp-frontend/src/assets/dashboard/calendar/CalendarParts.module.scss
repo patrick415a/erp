@@ -66,6 +66,10 @@
   color: #7d8a9f;
   transition: color .15s, border-color .15s, background-color .15s;
 
+  &[data-today] {
+    width: 56px;
+  }
+
   &:hover {
     color: var(--primary);
     background: #f4f7ff;

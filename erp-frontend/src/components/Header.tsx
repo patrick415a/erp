@@ -1,5 +1,6 @@
 'use client';
 import axios from 'axios';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
@@ -30,7 +31,6 @@ export function Header() {
 
   // 모달 상태 관리
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -41,7 +41,6 @@ export function Header() {
 
   const handleLogout = () => {
     setIsMobileMenuOpen(false);
-    setModalMessage('로그아웃되었습니다');
     setIsModalOpen(true);
   };
 
@@ -55,14 +54,14 @@ export function Header() {
         <Brand compact />
         <nav className={styles.navigation} aria-label="주 메뉴">
           {links.map(([href, label]) => (
-            <a
+            <Link
               key={href}
               href={href}
               className={pathname === href ? styles.active : ''}
               aria-current={pathname === href ? 'page' : undefined}
             >
               {label}
-            </a>
+            </Link>
           ))}
         </nav>
         <div className={styles.userSection}>
@@ -99,11 +98,18 @@ export function Header() {
           aria-label="모바일 메뉴"
         >
           {links.map(([href, label]) => (
-            <a key={href} href={href} aria-current={pathname === href ? 'page' : undefined}>
+            <Link
+              key={href}
+              href={href}
+              aria-current={pathname === href ? 'page' : undefined}
+              onNavigate={() => setIsMobileMenuOpen(false)}
+            >
               {label}
-            </a>
+            </Link>
           ))}
-          <a href="/dashboard/mypage">마이페이지</a>
+          <Link href="/dashboard/mypage" onNavigate={() => setIsMobileMenuOpen(false)}>
+            마이페이지
+          </Link>
           <button
             type="button"
             className={buttons.button}
@@ -115,7 +121,12 @@ export function Header() {
           </button>
         </nav>
       </header>
-      <AlertModal isOpen={isModalOpen} message={modalMessage} onClose={handleCloseModal} />
+      <AlertModal
+        isOpen={isModalOpen}
+        message="로그아웃되었습니다"
+        status="success"
+        onClose={handleCloseModal}
+      />
     </>
   );
 }

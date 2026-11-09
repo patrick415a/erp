@@ -1,0 +1,48 @@
+@keyframes enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.toast {
+  position: fixed;
+  inset: 20px 20px auto auto;
+  z-index: 1100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(360px, calc(100% - 40px));
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-inline-start: 4px solid var(--primary);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 12px 32px #1c2a4b24;
+  animation: enter .2s ease both;
+
+  > button {
+    flex-shrink: 0;
+  }
+}
+
+.content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.notices {
+  display: grid;
+  gap: 4px;
+  max-height: min(180px, 45svh);
+  margin: 6px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  color: var(--muted);
+  font-size: 14px;
+  list-style: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}

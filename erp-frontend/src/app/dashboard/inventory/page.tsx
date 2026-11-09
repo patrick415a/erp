@@ -6,7 +6,8 @@ import formControlsStyles from '@/assets/common/FormControls.module.scss';
 import { Icon } from '@/components/ui/Icon';
 
 import { Layout } from '@/components/Layout';
-import AlertModal from '@/components/modal/AlertModal';
+import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
+import DeleteConfirmModal from '@/components/modal/DeleteConfirmModal';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import view from '@/assets/dashboard/WorkPage.module.scss';
@@ -22,13 +23,7 @@ interface InventoryItem {
 }
 
 export default function InventoryPage() {
-  // 알림 모달
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
+  const [notice, setNotice] = useState<AlertNotice | null>(null);
 
   // 재고 데이터
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -44,6 +39,7 @@ export default function InventoryPage() {
 
   // 재고 수정창
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null);
 
   // 재고 상태 자동 계산
   const getStockStatus = (stock: number): InventoryItem['status'] => {
@@ -77,9 +73,10 @@ export default function InventoryPage() {
   
   // 신규 품목 등록
   const handleAddItem = async () => {
+    if (isSaving) return;
+
     if (!newItem.name.trim()) {
-      setModalMessage('품목명을 입력해주세요.');
-      setIsModalOpen(true);
+      setNotice({ message: '품목명을 입력해주세요.', status: 'error' });
       return;
     }
 
@@ -89,8 +86,7 @@ export default function InventoryPage() {
       newItem.stock < 0 ||
       newItem.unitPrice < 0
     ) {
-      setModalMessage('재고 수량과 단가를 확인해주세요.');
-      setIsModalOpen(true);
+      setNotice({ message: '재고 수량과 단가를 확인해주세요.', status: 'error' });
       return;
     }
 
@@ -117,12 +113,10 @@ export default function InventoryPage() {
         unitPrice: 0,
       });
 
-      setModalMessage('신규 품목이 등록되었습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '신규 품목이 등록되었습니다.', status: 'success' });
     } catch (error) {
       console.error('품목 등록 실패:', error);
-      setModalMessage('품목 등록에 실패했습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '품목 등록에 실패했습니다.', status: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -133,8 +127,7 @@ export default function InventoryPage() {
     if (!editingItem || isSaving) return;
     
     if (!editingItem.name.trim()) {
-      setModalMessage('품목명을 입력해주세요.');
-      setIsModalOpen(true);
+      setNotice({ message: '품목명을 입력해주세요.', status: 'error' });
       return;
     }
 
@@ -144,8 +137,7 @@ export default function InventoryPage() {
       editingItem.stock < 0 ||
       editingItem.unitPrice < 0
     ) {
-      setModalMessage('현재고와 단가는 0 이상의 정수로 입력해주세요.');
-      setIsModalOpen(true);
+      setNotice({ message: '현재고와 단가는 0 이상의 정수로 입력해주세요.', status: 'error' });
       return;
     }
 
@@ -163,32 +155,31 @@ export default function InventoryPage() {
       setEditingItem(null);
       await fetchInventoryItems();
 
-      setModalMessage('재고 정보가 수정되었습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '재고 정보가 수정되었습니다.', status: 'success' });
     } catch (error) {
       console.error('재고 수정 실패:', error);
-      setModalMessage('재고 수정에 실패했습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '재고 수정에 실패했습니다.', status: 'error' });
     } finally {
       setIsSaving(false);
     }
   };
   
   // 재고 삭제
-  const handleDeleteItem = async (item: InventoryItem) => {
-    const confirmed = window.confirm(`${item.name} (${item.id}) 품목을 삭제하시겠습니까?`);
-    if (!confirmed) return;
+  const handleDeleteItem = async () => {
+    if (!deletingItem || isSaving) return;
 
     try {
-      await axios.delete(`http://localhost:8080/api/inventory/items/${encodeURIComponent(item.id)}`);
+      setIsSaving(true);
+      await axios.delete(`http://localhost:8080/api/inventory/items/${encodeURIComponent(deletingItem.id)}`);
       await fetchInventoryItems();
 
-      setModalMessage('품목이 삭제되었습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '품목이 삭제되었습니다.', status: 'success' });
     } catch (error) {
       console.error('재고 삭제 실패:', error);
-      setModalMessage('품목 삭제에 실패했습니다.');
-      setIsModalOpen(true);
+      setNotice({ message: '품목 삭제에 실패했습니다.', status: 'error' });
+    } finally {
+      setDeletingItem(null);
+      setIsSaving(false);
     }
   };
 
@@ -364,7 +355,7 @@ export default function InventoryPage() {
                               data-variant="danger"
                               data-size="small"
                               className={buttonStyles.button}
-                              onClick={() => handleDeleteItem(item)}
+                              onClick={() => setDeletingItem(item)}
                             >
                               삭제
                             </button>
@@ -613,7 +604,15 @@ export default function InventoryPage() {
         </div>
       )}
 
-      <AlertModal isOpen={isModalOpen} message={modalMessage} onClose={handleCloseModal} />
+      {deletingItem && (
+        <DeleteConfirmModal
+          message={`${deletingItem.name} (${deletingItem.id}) 품목을 삭제하시겠습니까?`}
+          isDeleting={isSaving}
+          onClose={() => setDeletingItem(null)}
+          onConfirm={handleDeleteItem}
+        />
+      )}
+      {notice && <AlertModal isOpen {...notice} onClose={() => setNotice(null)} />}
     </>
   );
 }

@@ -3,12 +3,14 @@
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Temporal } from '@js-temporal/polyfill';
-import AlertModal from '@/components/modal/AlertModal';
+import buttonStyles from '@/assets/common/Button.module.scss';
+import styles from '@/assets/dashboard/calendar/ScheduleReminder.module.scss';
+import { Icon } from '@/components/ui/Icon';
 import { setSchedules } from './scheduleStorage';
 import type { Schedule } from '@/app/types/schedule';
 
 function ActiveScheduleReminder() {
-  const [notices, setNotices] = useState<string[]>([]);
+  const [notices, setNotices] = useState<Schedule[]>([]);
 
   useEffect(() => {
     let audio: AudioContext | undefined;
@@ -42,9 +44,10 @@ function ActiveScheduleReminder() {
       });
       if (!due.length) return;
 
+      const dueIds = new Set(due.map((schedule) => schedule.id));
       setNotices((current) => [
-        ...current,
-        ...due.map((schedule) => schedule.time + ' · ' + (schedule.title || schedule.content)),
+        ...current.filter((schedule) => !dueIds.has(schedule.id)),
+        ...due,
       ]);
       if (audio?.state === 'running') {
         const tone = audio.createOscillator();
@@ -75,11 +78,32 @@ function ActiveScheduleReminder() {
   }, []);
 
   return (
-    <AlertModal
-      isOpen={notices.length > 0}
-      message={notices.length ? '업무 일정 알림\n' + notices.join('\n') : ''}
-      onClose={() => setNotices([])}
-    />
+    <div className={notices.length ? styles.toast : undefined}>
+      <div role="status" className={styles.content}>
+        {notices.length > 0 && (
+          <>
+            <strong>업무 일정 알림</strong>
+            <ul className={styles.notices}>
+              {notices.map((schedule) => (
+                <li key={schedule.id}>
+                  <time dateTime={schedule.time}>{schedule.time}</time> · {schedule.title || schedule.content}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+      {notices.length > 0 && (
+        <button
+          type="button"
+          aria-label="일정 알림 닫기"
+          className={buttonStyles.closeButton}
+          onClick={() => setNotices([])}
+        >
+          <Icon name="close" size={16} />
+        </button>
+      )}
+    </div>
   );
 }
 

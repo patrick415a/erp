@@ -43,6 +43,7 @@ export default function CalendarPage() {
                   onClick={() => setMonth(currentMonth())}
                   aria-label="오늘로 이동"
                   className={calendarPartsStyles.moveButton}
+                  data-today
                 >
                   오늘
                 </button>

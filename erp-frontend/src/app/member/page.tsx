@@ -14,7 +14,7 @@ import { useState } from 'react';
 
 import { useDispatch } from 'react-redux';
 import { setLogin } from '@/store/authSlice';
-import AlertModal from '@/components/modal/AlertModal';
+import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 
 const handleGoogleLogin = () => {
   // Google 소셜 연동을 추가할 위치입니다. 기존처럼 실제 연동은 구현되어 있지 않습니다.
@@ -63,13 +63,12 @@ export default function Member() {
   });
 
   // 모달 상태 관리
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
+  const [notice, setNotice] = useState<AlertNotice | null>(null);
   // 확인 버튼을 눌렀을 때 이동할 경로를 저장 (로그인 성공 시 대시보드로 가기 위함)
   const [nextRoute, setNextRoute] = useState('/');
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
+    setNotice(null);
     if (nextRoute) {
       router.push(nextRoute);
     }
@@ -109,9 +108,8 @@ export default function Member() {
         },
       }).open();
     } else {
-      setModalMessage('주소 검색 스크립트를 불러오는 중입니다.\\n 잠시 후 다시 시도해주세요.');
+      setNotice({ message: '주소 검색 스크립트를 불러오는 중입니다.\n잠시 후 다시 시도해주세요.' });
       setNextRoute('');
-      setIsModalOpen(true);
     }
   };
 
@@ -121,9 +119,8 @@ export default function Member() {
 
     // 유효성 검사 (비밀번호 확인)
     if (formData.password !== formData.repeatPassword) {
-      setModalMessage('비밀번호가 일치하지 않습니다.');
+      setNotice({ message: '비밀번호가 일치하지 않습니다.', status: 'error' });
       setNextRoute('');
-      setIsModalOpen(true);
       return;
     }
 
@@ -132,7 +129,7 @@ export default function Member() {
       const response = await axios.post('http://127.0.0.1:8080/api/members/register', formData);
 
       if (response.status === 200 || response.status === 201) {
-        setModalMessage('회원가입이 완료되었습니다');
+        setNotice({ message: '회원가입이 완료되었습니다', status: 'success' });
 
         // 만약 백엔드에서 가입과 동시에 토큰을 내려준다면 바로 전역 상태(Redux)에 저장
         const token = response.data.token;
@@ -143,14 +140,11 @@ export default function Member() {
         }else {
           setNextRoute('/');
         }
-
-        setIsModalOpen(true);
       }
     } catch (error) {
       console.error('회원가입 에러:', error);
-      setModalMessage('회원가입에 실패했습니다.\\n 다시 시도해주세요.');
+      setNotice({ message: '회원가입에 실패했습니다.\n다시 시도해주세요.', status: 'error' });
       setNextRoute('');
-      setIsModalOpen(true);
     }
   };
 
@@ -406,7 +400,7 @@ export default function Member() {
         </footer>
       </main>
 
-      <AlertModal isOpen={isModalOpen} message={modalMessage} onClose={handleCloseModal} />
+      {notice && <AlertModal isOpen {...notice} onClose={handleCloseModal} />}
     </>
   );
 }
