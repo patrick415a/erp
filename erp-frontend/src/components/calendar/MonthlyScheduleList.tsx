@@ -70,10 +70,6 @@ export function MonthlyScheduleList({
               <Icon name="calendar" size={28} />
             </span>
             <h3>이번 달에 표시할 일정이 없습니다</h3>
-            <p>
-              달력에서 날짜를 선택해
-              <br />새 일정을 등록해 보세요.
-            </p>
           </div>
         ) : (
           <div className={styles.groups}>
@@ -127,9 +123,6 @@ export function MonthlyScheduleList({
           </div>
         )}
       </div>
-      <footer className={styles.footer}>
-        일정을 선택하면 해당 날짜의 상세 내용을 확인할 수 있습니다.
-      </footer>
     </aside>
   );
 }

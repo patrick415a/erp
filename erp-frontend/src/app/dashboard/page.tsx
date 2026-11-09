@@ -3,7 +3,6 @@ import { Layout } from '@/components/Layout';
 import dataView from '@/assets/common/DataView.module.scss';
 import buttons from '@/assets/common/Button.module.scss';
 import view from '@/assets/dashboard/WorkPage.module.scss';
-import content from '@/assets/common/Content.module.scss';
 
 interface Order {
   id: string;
@@ -47,7 +46,6 @@ const metrics = [
   { label: '재고 부족 품목', value: '2건' },
   { label: '등록 임직원', value: '4명' },
 ];
-const systems = ['Next.js 프론트엔드', 'Spring Boot API', 'Oracle DB'];
 
 export default function DashboardPage() {
   return (
@@ -134,18 +132,6 @@ export default function DashboardPage() {
           </table>
         </div>
       </section>
-      <div className={content.fieldSpacing}>
-        <section className={dataView.panel}>
-          <header className={dataView.panelHeader}>
-            <h2>시스템 구성</h2>
-          </header>
-          <div className={dataView.panelHeader}>
-            {systems.map((name) => (
-              <span key={name}>{name}</span>
-            ))}
-          </div>
-        </section>
-      </div>
     </Layout>
   );
 }

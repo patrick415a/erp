@@ -110,12 +110,9 @@
   padding: 35px 20px;
   text-align: center;
   h3 { margin-top: 18px; font-size: 13px; font-weight: 500; color: #74839c; }
-  p { margin-top: 8px; font-size: 13px; color: #a0aabd; line-height: 1.9; }
 }
 
 .emptyIcon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 16px; background: #f4f6fc; color: #9faed0; }
-
-.footer { flex-shrink: 0; padding: 16px 24px; border-top: 1px solid var(--border); color: #a1abbd; font-size: 13px; line-height: 18px; }
 
 @media (max-width: 1200px) {
   .panel { contain: none; min-height: 320px; max-height: 520px; }
@@ -124,5 +121,4 @@
 @include mixins.mobile {
   .header { padding: 20px; }
   .groups { padding: 0 16px 20px; }
-  .footer { padding: 14px 20px; }
 }

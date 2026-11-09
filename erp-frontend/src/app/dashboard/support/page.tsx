@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { Layout } from '@/components/Layout';
+import AlertModal from '@/components/modal/AlertModal';
 import dataView from '@/assets/common/DataView.module.scss';
 import forms from '@/assets/common/FormControls.module.scss';
 import buttons from '@/assets/common/Button.module.scss';
@@ -18,23 +19,25 @@ const questions = [
   ],
   [
     '일정 알림음이 들리지 않아요.',
-    'ERP 화면을 한 번 클릭한 후 열어 두세요. 브라우저 탭의 음소거 여부도 확인해 주세요.',
+    '브라우저 탭의 음소거를 확인하고 ERP 화면을 한 번 클릭해 주세요.',
   ],
 ];
 
 export default function SupportPage() {
   const [tab, setTab] = useState<'faq' | 'inquiry'>('faq');
-  const [notice, setNotice] = useState('');
+  const [inquiryError, setInquiryError] = useState('');
+  const [isSentModalOpen, setIsSentModalOpen] = useState(false);
 
   function checkInquiry(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const complete = ['title', 'message'].every((field) => String(data.get(field) ?? '').trim());
-    setNotice(
-      complete
-        ? '입력 내용을 확인했습니다. 문의 전송은 아직 연결되지 않았습니다.'
-        : '제목과 내용을 모두 입력해 주세요.',
-    );
+    if (!complete) {
+      setInquiryError('제목과 내용을 모두 입력해 주세요.');
+      return;
+    }
+    setInquiryError('');
+    setIsSentModalOpen(true);
   }
 
   return (
@@ -62,7 +65,7 @@ export default function SupportPage() {
                   aria-pressed={tab === id}
                   onClick={() => {
                     setTab(id);
-                    setNotice('');
+                    setInquiryError('');
                   }}
                 >
                   {label}
@@ -81,10 +84,7 @@ export default function SupportPage() {
               </details>
             ))
           ) : (
-            <form onSubmit={checkInquiry} onChange={() => setNotice('')}>
-              <p className={styles.formGroup}>
-                문의 접수 서버가 연결되기 전까지는 입력 내용을 확인할 수 있습니다.
-              </p>
+            <form onSubmit={checkInquiry} onChange={() => setInquiryError('')}>
               <div className={styles.formGroup}>
                 <label htmlFor="inquiry-title">문의 제목</label>
                 <input id="inquiry-title" name="title" required maxLength={100} />
@@ -100,13 +100,19 @@ export default function SupportPage() {
                 />
               </div>
               <button type="submit" className={styles.saveBtn}>
-                문의 내용 확인
+                전송
               </button>
-              {notice && <p role="status">{notice}</p>}
+              {inquiryError && <p role="status" style={{ marginTop: '16px' }}>{inquiryError}</p>}
             </form>
           )}
         </section>
       </div>
+      <AlertModal
+        isOpen={isSentModalOpen}
+        message="전송이 완료되었습니다."
+        status="success"
+        onClose={() => setIsSentModalOpen(false)}
+      />
     </Layout>
   );
 }

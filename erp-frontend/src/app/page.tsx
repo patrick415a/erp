@@ -134,15 +134,8 @@ export default function Home() {
         { withCredentials: true, timeout: 8000 },
       );
       window.location.assign(data.authorizationUrl);
-    } catch (error) {
-      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-      showLoginError(
-        status === 503
-          ? '소셜 로그인 서버 설정이 필요합니다.'
-          : status === 400
-            ? '현재 로그인 화면 주소와 소셜 로그인 설정이 일치하지 않습니다.'
-            : '소셜 로그인을 시작하지 못했습니다. 백엔드 연결을 확인해 주세요.',
-      );
+    } catch {
+      showLoginError('소셜 로그인에 실패했습니다. 이메일로 로그인하거나 잠시 후 다시 시도해 주세요.');
       setIsSocialLoginPending(false);
     }
   };

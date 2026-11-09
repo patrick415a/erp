@@ -125,11 +125,7 @@ export default function ScheduleModal({
             className={formControlsStyles.input}
             value={formTime}
             onChange={(event) => setFormTime(event.target.value)}
-            aria-describedby="schedule-time-help"
           />
-          <small id="schedule-time-help">
-            ERP를 열어 두면 알림이 표시됩니다. 소리를 들으려면 화면을 한 번 클릭해 주세요.
-          </small>
         </div>
         <div className={formControlsStyles.selectContainer}>
           <div

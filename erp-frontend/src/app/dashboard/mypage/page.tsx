@@ -7,6 +7,7 @@ import buttonStyles from '@/assets/common/Button.module.scss';
 
 import { Layout } from '@/components/Layout';
 import { useSchedules } from '@/components/calendar/scheduleStorage';
+import AlertModal from '@/components/modal/AlertModal';
 import modalStyles from '@/assets/modal/ModalParts.module.scss';
 import settingsStyles from '@/assets/dashboard/settings/Settings.module.scss';
 import Link from 'next/link';
@@ -27,7 +28,8 @@ export default function MyPageClient() {
   const [newPasswordRepeat, setNewPasswordRepeat] = useState('');
   const [tab, setTab] = useState<'account' | 'message' | 'schedule'>('account');
   const [message, setMessage] = useState('');
-  const [messageNotice, setMessageNotice] = useState('');
+  const [messageError, setMessageError] = useState('');
+  const [isSentModalOpen, setIsSentModalOpen] = useState(false);
   const schedules = useSchedules();
   const orderedSchedules = [...schedules].sort(
     (a, b) => a.date.localeCompare(b.date) || (a.time ?? '24:00').localeCompare(b.time ?? '24:00'),
@@ -85,7 +87,7 @@ export default function MyPageClient() {
         },
       }).open();
     } else {
-      alert('주소 검색 스크립트를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      alert('주소 검색을 열 수 없습니다. 잠시 후 다시 시도해 주세요.');
     }
   };
 
@@ -209,11 +211,12 @@ export default function MyPageClient() {
             <form
               onSubmit={(event) => {
                 event.preventDefault();
-                setMessageNotice(
-                  message.trim()
-                    ? '내용을 확인했습니다. 쪽지 전송은 아직 연결되지 않았습니다.'
-                    : '쪽지 내용을 입력해 주세요.',
-                );
+                if (!message.trim()) {
+                  setMessageError('쪽지 내용을 입력해 주세요.');
+                  return;
+                }
+                setMessageError('');
+                setIsSentModalOpen(true);
               }}
             >
               <div className={settingsStyles.formGroup}>
@@ -228,16 +231,16 @@ export default function MyPageClient() {
                   value={message}
                   onChange={(event) => {
                     setMessage(event.target.value);
-                    setMessageNotice('');
+                    setMessageError('');
                   }}
                   required
                   maxLength={2000}
                 />
               </div>
               <button className={buttonStyles.button} type="submit">
-                쪽지 내용 확인
+                전송
               </button>
-              {messageNotice && <p role="status">{messageNotice}</p>}
+              {messageError && <p role="status" style={{ marginTop: '16px' }}>{messageError}</p>}
             </form>
           </section>
         )}
@@ -291,6 +294,12 @@ export default function MyPageClient() {
           </section>
         )}
       </div>
+      <AlertModal
+        isOpen={isSentModalOpen}
+        message="전송이 완료되었습니다."
+        status="success"
+        onClose={() => setIsSentModalOpen(false)}
+      />
     </Layout>
   );
 }

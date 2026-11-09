@@ -112,10 +112,7 @@ export default function SettingsPage() {
       <header className={dataView.pageHeader}>
         <div>
           <h1>기준정보 설정</h1>
-          <p>
-            변경 사항은 이 화면에서만 유지됩니다. 재고 데이터와 실제 시스템 권한에는 적용되지
-            않습니다.
-          </p>
+          <p>변경 사항은 페이지를 벗어나면 초기화됩니다.</p>
         </div>
       </header>
       <div className={styles.content}>
