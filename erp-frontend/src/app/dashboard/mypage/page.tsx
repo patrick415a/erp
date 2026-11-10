@@ -102,8 +102,13 @@ export default function MyPageClient() {
 
   const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
 
+    if (newPassword !== newPasswordRepeat) {
+      alert('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
     if (!token) {
       alert('로그인이 필요합니다.');
       router.push('/');

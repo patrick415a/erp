@@ -2,7 +2,7 @@
 import axios from 'axios';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setLogout } from '@/store/authSlice';
 import { Brand } from './Brand';
@@ -24,10 +24,49 @@ export function Header() {
   const toggleMenu = () => {
     setIsMobileMenuOpen((prev) => !prev);
   };
+  const [userName, setUserName] = useState('');
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
   // 기존 로그아웃 처리: 토큰과 Axios 헤더를 지우고 로그인으로 이동합니다.
+
+  useEffect(() => {
+    let active = true;
+    const fetchUserName = async () => {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        setUserName('');
+        return;
+      }
+
+      try {
+        const response = await axios.get('http://127.0.0.1:8080/api/members/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const { firstName, lastName } = response.data;
+
+        //성 + 이름
+        const fullName = `${lastName ?? ''}${firstName ?? ''}`.trim();
+
+        if (active) {
+          setUserName(fullName);
+        }
+      } catch (error) {
+        console.error('회원 이름 조회 실패: ', error);
+
+        if (active) {
+          setUserName('');
+        }
+      }
+    };
+    fetchUserName();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // 모달 상태 관리
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,10 +105,11 @@ export function Header() {
         </nav>
         <div className={styles.userSection}>
           <button className={styles.avatar} onClick={handleMyPage}>
-            관
+            {userName ? userName.charAt(0) : '관'}
           </button>
+
           <button className={styles.userName} onClick={handleMyPage}>
-            관리자님{/* <span>환영합니다</span> */}
+            {userName ? `${userName}님` : '관리자님'}
           </button>
           <button
             type="button"
