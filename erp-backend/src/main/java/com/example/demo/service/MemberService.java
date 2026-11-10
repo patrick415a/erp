@@ -6,6 +6,7 @@ import com.example.demo.dto.MemberRegisterDto;
 import com.example.demo.dto.MemberUpdateDto;
 import com.example.demo.entity.Member;
 import com.example.demo.repository.MemberRepository;
+import com.example.demo.dto.MemberProfileDto;
 import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -106,20 +107,26 @@ public class MemberService {
 
     @Transactional
     public void updateProfile(String email, MemberUpdateDto profile) {
-        if (profile.tel() == null && profile.address() == null && profile.detailAddress() == null) {
+        if (profile.position() == null && profile.tel() == null && profile.address() == null && profile.detailAddress() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "수정할 회원 정보를 입력해 주세요.");
         }
 
-        Member member = memberRepository
-            .findByEmail(email)
-            .orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
-            );
+        Member member = memberRepository.findByEmail(email).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
         member.updateProfile(
+            profileValue(profile.position(), 50),
             profileValue(profile.tel(), 20),
             profileValue(profile.address(), 255),
             profileValue(profile.detailAddress(), 255)
         );
+    }
+
+    //마이페이지 - 로그인한 회원정보 조회
+    @Transactional(readOnly = true)
+    public MemberProfileDto getMyProfile(String email) {
+        Member member = memberRepository.findByEmail(email).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        return MemberProfileDto.from(member);
     }
 
     private String profileValue(String value, int maxLength) {

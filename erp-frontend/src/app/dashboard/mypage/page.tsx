@@ -13,7 +13,7 @@ import settingsStyles from '@/assets/dashboard/settings/Settings.module.scss';
 import Link from 'next/link';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import view from '@/assets/dashboard/WorkPage.module.scss';
 
@@ -23,6 +23,14 @@ import styles from '@/assets/dashboard/mypage/Mypage.module.scss';
 
 export default function MyPageClient() {
   const router = useRouter();
+  const [formData, setFormData] = useState({
+    position: '',
+    tel: '',
+    address: '',
+    detailAddress: ''
+  });
+
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordRepeat, setNewPasswordRepeat] = useState('');
@@ -34,6 +42,63 @@ export default function MyPageClient() {
   const orderedSchedules = [...schedules].sort(
     (a, b) => a.date.localeCompare(b.date) || (a.time ?? '24:00').localeCompare(b.time ?? '24:00'),
   );
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        router.replace('/');
+        return;
+      }
+
+      try {
+        const response = await axios.get('http://127.0.0.1:8080/api/members/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const profile = response.data;
+
+        setFormData({
+          position: profile.position ?? '',
+          tel: profile.tel ?? '',
+          address: profile.address ?? '',
+          detailAddress: profile.detailAddress ?? ''
+        });
+      } catch (error) {
+        console.error('회원정보 조회 실패: ', error);
+        alert('회원정보를 불러오지 못했습니다.');
+      } finally {
+        setIsProfileLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [router]);
+
+  const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      alert('로그인이 필요합니다.');
+      router.push('/');
+      return;
+    }
+
+    try {
+      await axios.put('http://127.0.0.1:8080/api/members/profile', formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert('회원정보가 성공적으로 수정되었습니다.');
+    } catch (error) {
+      console.error('회원정보 수정 실패: ', error);
+      alert('회원정보 수정에 실패했습니다.');
+    }
+  }
 
   const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -79,11 +144,10 @@ export default function MyPageClient() {
             fullAddress += extraAddress !== '' ? ` (${extraAddress})` : '';
           }
 
-          // 주소 상태 업데이트
-          // setFormData((prev) => ({
-          //   ...prev,
-          //   address: fullAddress,
-          // }));
+          setFormData((prev) => ({
+            ...prev,
+            address: fullAddress
+          }));
         },
       }).open();
     } else {
@@ -129,22 +193,22 @@ export default function MyPageClient() {
         </nav>
         {tab === 'account' && (
           <div className={styles.content}>
-            <form className={view.accountForm}>
+            <form onSubmit={handleUpdateProfile} className={view.accountForm}>
               <h3 className={styles.subTitle}>내 정보 수정</h3>
               <div className={styles.inputGroup}>
                 <div className={contentStyles.fieldSpacing}>
                   <label className={formControlsStyles.label}>직급</label>
-                  <input type="text" required className={formControlsStyles.input} />
+                  <input type="text" required value={formData.position} onChange={(e) => setFormData({...formData, position: e.target.value})} className={formControlsStyles.input} />
                 </div>
                 <div className={contentStyles.fieldSpacing}>
                   <label className={formControlsStyles.label}>전화번호</label>
-                  <input type="text" required className={formControlsStyles.input} />
+                  <input type="text" required value={formData.tel} onChange={(e) => setFormData({...formData, tel: e.target.value})} className={formControlsStyles.input} />
                 </div>
               </div>
               <div className={contentStyles.fieldSpacing}>
                 <label className={formControlsStyles.label}>주소</label>
                 <div className={styles.address}>
-                  <input type="text" readOnly className={formControlsStyles.input} />
+                  <input type="text" readOnly value={formData.address} className={formControlsStyles.input} />
                   <button
                     type="button"
                     onClick={handleAddressSearch}
@@ -157,7 +221,7 @@ export default function MyPageClient() {
               </div>
               <div className={contentStyles.fieldSpacing}>
                 <label className={formControlsStyles.label}>상세주소</label>
-                <input type="text" required className={formControlsStyles.input} />
+                <input type="text" required value={formData.detailAddress} onChange={(e) => setFormData({...formData, detailAddress: e.target.value})} className={formControlsStyles.input} />
               </div>
               <div className={buttonStyles.buttonLeft}>
                 <button type="submit" data-variant="primary" className={buttonStyles.button}>

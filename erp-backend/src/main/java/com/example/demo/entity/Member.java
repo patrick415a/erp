@@ -78,7 +78,8 @@ public class Member {
         this.password = password;
     }
 
-    public void updateProfile(String tel, String address, String detailAddress) {
+    public void updateProfile(String position, String tel, String address, String detailAddress) {
+        if (position != null) this.position = position;
         if (tel != null) this.tel = tel;
         if (address != null) this.address = address;
         if (detailAddress != null) this.detailAddress = detailAddress;

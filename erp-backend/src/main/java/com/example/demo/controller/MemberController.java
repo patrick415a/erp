@@ -7,6 +7,7 @@ import com.example.demo.dto.MemberUpdateDto;
 import com.example.demo.dto.PasswordChangeDto;
 import com.example.demo.dto.TokenResponseDto;
 import com.example.demo.service.MemberService;
+import com.example.demo.dto.MemberProfileDto;
 import io.jsonwebtoken.JwtException;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -73,6 +74,32 @@ public class MemberController {
             return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    //마이페이지 - 로그인한 회원정보 조회
+    @GetMapping("/profile")
+    public ResponseEntity<?> getMyProfile(@RequestHeader(value = "Authorization", required = false) String authorization) {
+        //토큰 존재 여부 및 Bearer 형식 확인
+        if (authorization == null || !authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+
+        try {
+            //JWT에서 로그인한 회원의 이메일 추출
+            String token = authorization.substring(7);
+            String email = jwtProvider.getEmailFromToken(token);
+
+            if (email == null || email.isBlank()) {
+                return ResponseEntity.status(401).body("로그인이 필요합니다.");
+            }
+
+            //DB에서 회원정보 조회
+            MemberProfileDto profile = memberService.getMyProfile(email);
+
+            return ResponseEntity.ok(profile);
+        } catch (JwtException | IllegalArgumentException e) {
+            return ResponseEntity.status(401).body("로그인이 만료되었습니다.");
         }
     }
 
