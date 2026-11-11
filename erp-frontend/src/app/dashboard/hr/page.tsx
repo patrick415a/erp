@@ -34,6 +34,29 @@ const employeeFields = [
 
 export default function HrPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+
+  const filteredEmployees = employees.filter((employee) => {
+    const keyword = appliedKeyword.trim().toLowerCase();
+
+    return (
+      employee.id.toLowerCase().includes(keyword) ||
+      employee.name.toLowerCase().includes(keyword) ||
+      employee.department.toLowerCase().includes(keyword)
+    );
+  });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage));
+
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedEmployees = filteredEmployees.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage);
+
   const [isLoading, setIsLoading] = useState(true);
   const [dialog, setDialog] = useState<EmployeeDialog | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,15 +66,11 @@ export default function HrPage() {
   useEffect(() => {
     const controller = new AbortController();
 
-    axios
-      .get<Employee[]>(employeesUrl, { signal: controller.signal })
-      .then(({ data }) => setEmployees(data))
-      .catch((error) => {
-        if (!axios.isCancel(error)) console.error('직원 목록 조회 실패:', error);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoading(false);
-      });
+    axios.get<Employee[]>(employeesUrl, { signal: controller.signal }).then(({ data }) => setEmployees(data)).catch((error) => {
+      if (!axios.isCancel(error)) console.error('직원 목록 조회 실패:', error);
+    }).finally(() => {
+      if (!controller.signal.aborted) setIsLoading(false);
+    });
 
     return () => controller.abort();
   }, []);
@@ -130,213 +149,176 @@ export default function HrPage() {
     switch (status) {
       case 'active':
         return (
-          <span data-tone="success" className={dataViewStyles.badge}>
-            재직중
-          </span>
+          <span data-tone="success" className={dataViewStyles.badge}>재직중</span>
         );
       case 'leave':
         return (
-          <span data-tone="warning" className={dataViewStyles.badge}>
-            휴직
-          </span>
+          <span data-tone="warning" className={dataViewStyles.badge}>휴직</span>
         );
       case 'resigned':
         return (
-          <span data-tone="danger" className={dataViewStyles.badge}>
-            퇴사
-          </span>
+          <span data-tone="danger" className={dataViewStyles.badge}>퇴사</span>
         );
       default:
         return (
-          <span data-tone="secondary" className={dataViewStyles.badge}>
-            알수없음
-          </span>
+          <span data-tone="secondary" className={dataViewStyles.badge}>알수없음</span>
         );
     }
   };
 
   return (
     <>
-      <Layout>
-        <div className={view.page}>
-          <header className={dataViewStyles.pageHeader}>
-            <div>
-              <h1>인사 관리</h1>
-              <p>임직원 정보와 재직 현황을 한눈에 확인합니다.</p>
-            </div>
-            <div className={dataViewStyles.pageActions}>
-              <button
-                type="button"
-                className={buttonStyles.button}
-                onClick={() => openDialog({ mode: 'create' })}
-                disabled={isLoading}
-              >
-                신규 직원 등록
-              </button>
-            </div>
-          </header>
-          <div className={dataViewStyles.statsGrid}>
-            <section className={dataViewStyles.statCard} data-tone="default">
-              <span className={dataViewStyles.statLabel}>총 임직원 수</span>
-              <strong className={dataViewStyles.statValue}>{employees.length + '명'}</strong>
-              <span className={dataViewStyles.statDecoration}>
-                <Icon name="users" size={19} />
-              </span>
-            </section>
-            <section className={dataViewStyles.statCard} data-tone="primary">
-              <span className={dataViewStyles.statLabel}>이번 달 신규 입사</span>
-              <strong className={dataViewStyles.statValue}>{newEmployeesThisMonth}명</strong>
-              <span className={dataViewStyles.statDecoration}>
-                <Icon name="check" size={19} />
-              </span>
-            </section>
-            <section className={dataViewStyles.statCard} data-tone="warning">
-              <span className={dataViewStyles.statLabel}>현재 휴직자</span>
-              <strong className={dataViewStyles.statValue}>
-                {employees.filter((emp) => emp.status === 'leave').length + '명'}
-              </strong>
-              <span className={dataViewStyles.statDecoration}>
-                <Icon name="calendar" size={19} />
-              </span>
-            </section>
+    <Layout>
+      <div className={view.page}>
+        <header className={dataViewStyles.pageHeader}>
+          <div>
+            <h1>인사 관리</h1>
+            <p>임직원 정보와 재직 현황을 한눈에 확인합니다.</p>
           </div>
-          <section className={dataViewStyles.panel}>
-            <header className={dataViewStyles.panelHeader}>
-              <h2>임직원 목록</h2>
-            </header>
-            <div className={dataViewStyles.tableScroller}>
-              <table className={dataViewStyles.table}>
-                <thead>
-                  <tr>
-                    <th>사번</th>
-                    <th>이름</th>
-                    <th>부서</th>
-                    <th>직급/직책</th>
-                    <th className={view.center}>상태</th>
-                    <th>입사일</th>
-                    <th className={view.center}>관리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {employees.map((emp) => (
-                    <tr key={emp.id}>
-                      <td>{emp.id}</td>
-                      <td>
-                        <strong>{emp.name}</strong>
-                      </td>
-                      <td>{emp.department}</td>
-                      <td>{emp.role}</td>
-                      <td className={view.center}>{getStatusBadge(emp.status)}</td>
-                      <td>{emp.joinDate}</td>
-                      <td className={view.center}>
-                        <div className={view.rowActions}>
-                          <button
-                            type="button"
-                            data-variant="outline"
-                            data-size="small"
-                            className={buttonStyles.button}
-                            onClick={() => openDialog({ mode: 'edit', employee: emp })}
-                          >
-                            수정
-                          </button>
-                          <button
-                            type="button"
-                            data-variant="danger"
-                            data-size="small"
-                            className={buttonStyles.button}
-                            onClick={() => openDialog({ mode: 'delete', employee: emp })}
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+
+          <div className={dataViewStyles.pageActions}>
+            <button type="button" className={buttonStyles.button} onClick={() => openDialog({ mode: 'create' })}disabled={isLoading}>신규 직원 등록</button>
+          </div>
+        </header>
+
+        <div className={dataViewStyles.statsGrid}>
+          <section className={dataViewStyles.statCard} data-tone="default">
+            <span className={dataViewStyles.statLabel}>총 임직원 수</span>
+            <strong className={dataViewStyles.statValue}>{employees.length + '명'}</strong>
+            <span className={dataViewStyles.statDecoration}>
+              <Icon name="users" size={19}/>
+            </span>
+          </section>
+
+          <section className={dataViewStyles.statCard} data-tone="primary">
+            <span className={dataViewStyles.statLabel}>이번 달 신규 입사</span>
+            <strong className={dataViewStyles.statValue}>{newEmployeesThisMonth}명</strong>
+            <span className={dataViewStyles.statDecoration}>
+              <Icon name="check" size={19} />
+            </span>
+          </section>
+
+          <section className={dataViewStyles.statCard} data-tone="warning">
+            <span className={dataViewStyles.statLabel}>현재 휴직자</span>
+            <strong className={dataViewStyles.statValue}>{employees.filter((emp) => emp.status === 'leave').length + '명'}</strong>
+            <span className={dataViewStyles.statDecoration}>
+              <Icon name="calendar" size={19}/>
+            </span>
           </section>
         </div>
-      </Layout>
-      {dialog && (
-        <ModalLayout
-          isOpen
-          onClose={closeDialog}
-          title={dialog.mode === 'create' ? '신규 직원 등록' : `직원 정보 ${dialogActions[dialog.mode]}`}
-        >
-          <form onSubmit={submitEmployee} aria-busy={isSubmitting}>
-            {dialog.mode === 'delete' ? (
-              <p className={modalStyles.text} data-align="left">
-                {dialog.employee.name} ({dialog.employee.id}) 직원 정보를 삭제하시겠습니까?
-              </p>
-            ) : (
-              <div className={modalStyles.formGroup}>
-                {employeeFields.map(({ name, label }) => (
-                  <label key={name} className={formStyles.field}>
-                    <span className={formStyles.label}>{label}</span>
-                    <input
-                      name={name}
-                      className={formStyles.input}
-                      defaultValue={selectedEmployee?.[name]}
-                      maxLength={255}
-                      required
-                      disabled={isSubmitting}
-                    />
-                  </label>
+
+        <section className={dataViewStyles.panel}>
+          <header className={dataViewStyles.panelHeader}>
+            <h2>임직원 목록</h2>
+
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <input type="text" placeholder='사번, 이름 또는 부서 검색...' value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} 
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setAppliedKeyword(searchKeyword);
+                  setCurrentPage(1);
+                }
+              }}
+              style={{ width: '220px', padding: '8px 12px', border: '1px solid #dbe2ef', borderRadius: '6px', fontSize: '13px' }}/>
+
+              <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" onClick={() => {setAppliedKeyword(searchKeyword); setCurrentPage(1);}}>검색</button>
+            </div>
+          </header>
+
+          <div className={dataViewStyles.tableScroller}>
+            <table className={dataViewStyles.table}>
+              <thead>
+                <tr>
+                  <th>사번</th>
+                  <th>이름</th>
+                  <th>부서</th>
+                  <th>직급/직책</th>
+                  <th className={view.center}>상태</th>
+                  <th>입사일</th>
+                  <th className={view.center}>관리</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {paginatedEmployees.map((emp) => (
+                  <tr key={emp.id}>
+                    <td>{emp.id}</td>
+                    <td>
+                      <strong>{emp.name}</strong>
+                    </td>
+                    <td>{emp.department}</td>
+                    <td>{emp.role}</td>
+                    <td className={view.center}>{getStatusBadge(emp.status)}</td>
+                    <td>{emp.joinDate}</td>
+                    <td className={view.center}>
+                      <div className={view.rowActions}>
+                        <button type="button" data-variant="outline" data-size="small" className={buttonStyles.button} onClick={() => openDialog({ mode: 'edit', employee: emp })}>수정</button>
+                        <button type="button" data-variant="danger" data-size="small" className={buttonStyles.button} onClick={() => openDialog({ mode: 'delete', employee: emp })}>삭제</button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-                <div className={formStyles.field}>
-                  <label htmlFor="hr-employee-status" className={formStyles.label}>
-                    근무 상태
-                  </label>
-                  <select
-                    id="hr-employee-status"
-                    name="status"
-                    className={formStyles.input}
-                    defaultValue={selectedEmployee?.status ?? 'active'}
-                    disabled={isSubmitting}
-                  >
-                    <option value="active">재직중</option>
-                    <option value="leave">휴직</option>
-                    <option value="resigned">퇴사</option>
-                  </select>
-                </div>
-                <label className={formStyles.field}>
-                  <span className={formStyles.label}>입사일</span>
-                  <input
-                    type="date"
-                    name="joinDate"
-                    className={formStyles.input}
-                    defaultValue={selectedEmployee?.joinDate ?? Temporal.Now.plainDateISO().toString()}
-                    required
-                    disabled={isSubmitting}
-                  />
-                </label>
+              </tbody>
+            </table>
+
+            {!isLoading && filteredEmployees.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '16px' }}>
+                <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === 1} onClick={() => setCurrentPage(safeCurrentPage - 1)}>이전</button>
+
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                  <button key={page} type='button' className={buttonStyles.button} data-variant={safeCurrentPage === page ? undefined : 'outline'} data-size="small" onClick={() => setCurrentPage(page)}>{page}</button>
+                ))}
+
+                <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === totalPages} onClick={() => setCurrentPage(safeCurrentPage + 1)}>다음</button>
               </div>
             )}
-            {dialogError && <p role="alert">{dialogError}</p>}
-            <div className={modalStyles.actions}>
-              <button
-                type="button"
-                data-variant="outline"
-                className={buttonStyles.button}
-                onClick={closeDialog}
-                disabled={isSubmitting}
-              >
-                취소
-              </button>
-              <button
-                type="submit"
-                data-variant={dialog.mode === 'delete' ? 'danger' : undefined}
-                className={buttonStyles.button}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? '처리 중…' : dialogActions[dialog.mode]}
-              </button>
+
+          </div>
+        </section>
+      </div>
+    </Layout>
+
+    {dialog && (
+      <ModalLayout isOpen onClose={closeDialog} title={dialog.mode === 'create' ? '신규 직원 등록' : `직원 정보 ${dialogActions[dialog.mode]}`}>
+        <form onSubmit={submitEmployee} aria-busy={isSubmitting}>
+          {dialog.mode === 'delete' ? (
+            <p className={modalStyles.text} data-align="left">
+              {dialog.employee.name} ({dialog.employee.id}) 직원 정보를 삭제하시겠습니까?
+            </p>
+          ) : (
+            <div className={modalStyles.formGroup}>
+              {employeeFields.map(({ name, label }) => (
+                <label key={name} className={formStyles.field}>
+                  <span className={formStyles.label}>{label}</span>
+                  <input name={name} className={formStyles.input} defaultValue={selectedEmployee?.[name]} maxLength={255} required disabled={isSubmitting}/>
+                </label>
+              ))}
+
+              <div className={formStyles.field}>
+                <label htmlFor="hr-employee-status" className={formStyles.label}>근무 상태</label>
+                <select id="hr-employee-status" name="status" className={formStyles.input} defaultValue={selectedEmployee?.status ?? 'active'} disabled={isSubmitting}>
+                  <option value="active">재직중</option>
+                  <option value="leave">휴직</option>
+                  <option value="resigned">퇴사</option>
+                </select>
+              </div>
+
+              <label className={formStyles.field}>
+                <span className={formStyles.label}>입사일</span>
+                <input type="date" name="joinDate" className={formStyles.input} defaultValue={selectedEmployee?.joinDate ?? Temporal.Now.plainDateISO().toString()} required disabled={isSubmitting}/>
+              </label>
             </div>
-          </form>
-        </ModalLayout>
-      )}
-      {notice && <AlertModal isOpen message={notice} status="success" onClose={() => setNotice('')} />}
+          )}
+          
+          {dialogError && <p role="alert">{dialogError}</p>}
+          <div className={modalStyles.actions}>
+            <button type="button" data-variant="outline" className={buttonStyles.button} onClick={closeDialog} disabled={isSubmitting}>취소</button>
+            <button type="submit" data-variant={dialog.mode === 'delete' ? 'danger' : undefined} className={buttonStyles.button} disabled={isSubmitting}>{isSubmitting ? '처리 중…' : dialogActions[dialog.mode]}</button>
+          </div>
+        </form>
+      </ModalLayout>
+    )}
+    {notice && <AlertModal isOpen message={notice} status="success" onClose={() => setNotice('')} />}
     </>
   );
 }

@@ -60,9 +60,7 @@ export default function InventoryPage() {
     try {
       setIsLoading(true);
 
-      const response = await axios.get<InventoryItem[]>(
-        'http://localhost:8080/api/inventory/items',
-      );
+      const response = await axios.get<InventoryItem[]>('http://localhost:8080/api/inventory/items');
       setItems(response.data);
     } catch (error) {
       console.error('재고 목록 조회 실패:', error);
@@ -186,6 +184,7 @@ export default function InventoryPage() {
   //품목명 또는 품목 코드 검색
   const handleSearch = () => {
     setSearchKeyword(searchInput.trim());
+    setCurrentPage(1);
   };
 
   //검색 결과 필터링
@@ -194,8 +193,17 @@ export default function InventoryPage() {
 
     return (
       item.name.toLowerCase().includes(keyword) || item.id.toLowerCase().includes(keyword)
-    )
-  })
+    );
+  });
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
+
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedItems = filteredItems.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage);
 
   useEffect(() => {
     fetchInventoryItems();
@@ -224,395 +232,263 @@ export default function InventoryPage() {
 
   return (
     <>
-      <Layout>
-        <div className={view.page}>
-          <header className={dataViewStyles.pageHeader}>
-            <div>
-              <h1>재고관리</h1>
-              <p>품목별 재고 수량과 자산 현황을 확인합니다.</p>
-            </div>
+    <Layout>
+      <div className={view.page}>
+        <header className={dataViewStyles.pageHeader}>
+          <div>
+            <h1>재고관리</h1>
+            <p>품목별 재고 수량과 자산 현황을 확인합니다.</p>
+          </div>
 
-            <div className={dataViewStyles.pageActions}>
-              <button className={buttonStyles.button} onClick={() => setIsAddModalOpen(true)}>
-                신규 품목 등록
-              </button>
+          <div className={dataViewStyles.pageActions}>
+            <button className={buttonStyles.button} onClick={() => setIsAddModalOpen(true)}>
+              신규 품목 등록
+            </button>
+          </div>
+        </header>
+
+        <div className={dataViewStyles.statsGrid}>
+          <section className={dataViewStyles.statCard} data-tone="primary">
+            <span className={dataViewStyles.statLabel}>총 등록 품목</span>
+            <strong className={dataViewStyles.statValue}>{items.length + '개'}</strong>
+            <span className={dataViewStyles.statDecoration}>
+              <Icon name="boxes" size={19} />
+            </span>
+          </section>
+
+          <section className={dataViewStyles.statCard} data-tone="danger">
+            <span className={dataViewStyles.statLabel}>재고 부족 / 품절</span>
+            <strong className={dataViewStyles.statValue}>
+              {items.filter((item) => item.status !== 'normal').length + '건'}
+            </strong>
+            <span className={dataViewStyles.statDecoration}>
+              <Icon name="warning" size={19} />
+            </span>
+          </section>
+
+          <section className={dataViewStyles.statCard} data-tone="success">
+            <span className={dataViewStyles.statLabel}>총 재고 자산</span>
+            <strong className={dataViewStyles.statValue}>
+              {'₩ ' + items.reduce((acc, curr) => acc + curr.stock * curr.unitPrice, 0).toLocaleString()}
+            </strong>
+            <span className={dataViewStyles.statDecoration}>
+              <Icon name="wallet" size={19} />
+            </span>
+          </section>
+        </div>
+
+        <section className={dataViewStyles.panel}>
+          <header className={dataViewStyles.panelHeader}>
+            <h2>현재고 현황</h2>
+            <div className={dataViewStyles.panelActions}>
+              <div className={view.search}>
+                <input className={formControlsStyles.input} placeholder="품목명 또는 코드 검색..." aria-label="품목명 또는 코드 검색" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}/>
+                <button className={buttonStyles.button} data-variant="outline" data-size="small" onClick={handleSearch}>검색</button>
+              </div>
             </div>
           </header>
 
-          <div className={dataViewStyles.statsGrid}>
-            <section className={dataViewStyles.statCard} data-tone="primary">
-              <span className={dataViewStyles.statLabel}>총 등록 품목</span>
-              <strong className={dataViewStyles.statValue}>{items.length + '개'}</strong>
-              <span className={dataViewStyles.statDecoration}>
-                <Icon name="boxes" size={19} />
-              </span>
-            </section>
+          <div className={dataViewStyles.tableScroller}>
+            <table className={dataViewStyles.table}>
+              <thead>
+                <tr>
+                  <th>품목 코드</th>
+                  <th>품목명</th>
+                  <th>분류</th>
+                  <th className={view.number}>현재고</th>
+                  <th className={view.number}>단가 (원)</th>
+                  <th className={view.center}>상태</th>
+                  <th className={view.center}>관리</th>
+                </tr>
+              </thead>
 
-            <section className={dataViewStyles.statCard} data-tone="danger">
-              <span className={dataViewStyles.statLabel}>재고 부족 / 품절</span>
-              <strong className={dataViewStyles.statValue}>
-                {items.filter((item) => item.status !== 'normal').length + '건'}
-              </strong>
-              <span className={dataViewStyles.statDecoration}>
-                <Icon name="warning" size={19} />
-              </span>
-            </section>
-
-            <section className={dataViewStyles.statCard} data-tone="success">
-              <span className={dataViewStyles.statLabel}>총 재고 자산</span>
-              <strong className={dataViewStyles.statValue}>
-                {'₩ ' +
-                  items
-                    .reduce((acc, curr) => acc + curr.stock * curr.unitPrice, 0)
-                    .toLocaleString()}
-              </strong>
-              <span className={dataViewStyles.statDecoration}>
-                <Icon name="wallet" size={19} />
-              </span>
-            </section>
-          </div>
-
-          <section className={dataViewStyles.panel}>
-            <header className={dataViewStyles.panelHeader}>
-              <h2>현재고 현황</h2>
-              <div className={dataViewStyles.panelActions}>
-                <div className={view.search}>
-                  <input
-                    className={formControlsStyles.input}
-                    placeholder="품목명 또는 코드 검색..."
-                    aria-label="품목명 또는 코드 검색"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSearch();
-                      }
-                    }}
-                  />
-                  <button
-                    className={buttonStyles.button}
-                    data-variant="outline"
-                    data-size="small"
-                    onClick={handleSearch}
-                  >
-                    검색
-                  </button>
-                </div>
-              </div>
-            </header>
-
-            <div className={dataViewStyles.tableScroller}>
-              <table className={dataViewStyles.table}>
-                <thead>
+              <tbody>
+                {isLoading ? (
                   <tr>
-                    <th>품목 코드</th>
-                    <th>품목명</th>
-                    <th>분류</th>
-                    <th className={view.number}>현재고</th>
-                    <th className={view.number}>단가 (원)</th>
-                    <th className={view.center}>상태</th>
-                    <th className={view.center}>관리</th>
+                    <td colSpan={7} className={dataViewStyles.tableMessage}>
+                      재고 목록을 불러오는 중입니다...
+                    </td>
                   </tr>
-                </thead>
-
-                <tbody>
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={7} className={dataViewStyles.tableMessage}>
-                        재고 목록을 불러오는 중입니다...
+                ) : filteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className={dataViewStyles.tableMessage}>
+                      {searchKeyword ? '검색 결과가 없습니다.' : '등록된 재고가 없습니다.'}
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedItems.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <strong>{item.id}</strong>
+                      </td>
+                      <td className={view.itemName}>{item.name}</td>
+                      <td>{item.category}</td>
+                      <td className={view.number}>
+                        <strong>{item.stock.toLocaleString()}</strong>
+                      </td>
+                      <td className={view.number}>{item.unitPrice.toLocaleString()}</td>
+                      <td className={view.center}>{renderStatusBadge(item.status)}</td>
+                      <td>
+                        <div className={view.rowActions}>
+                          <button data-variant="outline" data-size="small" className={buttonStyles.button} onClick={() => setEditingItem({ ...item })}>수정</button>
+                          <button data-variant="danger" data-size="small" className={buttonStyles.button} onClick={() => setDeletingItem(item)}>삭제</button>
+                        </div>
                       </td>
                     </tr>
-                  ) : filteredItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className={dataViewStyles.tableMessage}>
-                        {searchKeyword ? '검색 결과가 없습니다.' : '등록된 재고가 없습니다.'}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredItems.map((item) => (
-                      <tr key={item.id}>
-                        <td>
-                          <strong>{item.id}</strong>
-                        </td>
-                        <td className={view.itemName}>{item.name}</td>
-                        <td>{item.category}</td>
-                        <td className={view.number}>
-                          <strong>{item.stock.toLocaleString()}</strong>
-                        </td>
-                        <td className={view.number}>{item.unitPrice.toLocaleString()}</td>
-                        <td className={view.center}>{renderStatusBadge(item.status)}</td>
-                        <td>
-                          <div className={view.rowActions}>
-                            <button
-                              data-variant="outline"
-                              data-size="small"
-                              className={buttonStyles.button}
-                              onClick={() => setEditingItem({ ...item })}
-                            >
-                              수정
-                            </button>
-                            <button
-                              data-variant="danger"
-                              data-size="small"
-                              className={buttonStyles.button}
-                              onClick={() => setDeletingItem(item)}
-                            >
-                              삭제
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {!isLoading && filteredItems.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '16px' }}>
+              <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === 1} onClick={() => setCurrentPage(safeCurrentPage - 1)}>이전</button>
+
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <button key={page} type='button' className={buttonStyles.button} data-variant={safeCurrentPage === page ? undefined : 'outline'} data-size="small" onClick={() => setCurrentPage(page)}>{page}</button>
+              ))}
+
+              <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === totalPages} onClick={() => setCurrentPage(safeCurrentPage + 1)}>다음</button>
             </div>
-          </section>
-        </div>
-      </Layout>
+          )}
 
-      {isAddModalOpen && (
-        <div className={modalStyles.overlay}>
-          <div
-            className={modalStyles.dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="add-inventory-title"
-          >
-            <h2 id="add-inventory-title" className={modalStyles.title}>
-              신규 품목 등록
-            </h2>
+        </section>
+      </div>
+    </Layout>
 
-            <div className={modalStyles.fields}>
+    {isAddModalOpen && (
+      <div className={modalStyles.overlay}>
+        <div className={modalStyles.dialog} role="dialog" aria-modal="true" aria-labelledby="add-inventory-title">
+          <h2 id="add-inventory-title" className={modalStyles.title}>신규 품목 등록</h2>
+
+          <div className={modalStyles.fields}>
+            <div className={formControlsStyles.field}>
+              <label htmlFor="inventory-name">품목명</label>
+              <input id="inventory-name" className={formControlsStyles.input} placeholder="품목명을 입력하세요" value={newItem.name}
+              onChange={(e) => setNewItem({
+                ...newItem,
+                name: e.target.value,
+              })}/>
+            </div>
+
+            <div className={formControlsStyles.field}>
+              <label htmlFor="inventory-category">분류</label>
+              <select id="inventory-category" className={formControlsStyles.input} value={newItem.category} onChange={(e) =>
+              setNewItem({
+                ...newItem,
+                category: e.target.value,
+              })}>
+                <option value="원자재">원자재</option>
+                <option value="부품">부품</option>
+                <option value="포장재">포장재</option>
+                <option value="소모품">소모품</option>
+              </select>
+            </div>
+
+            <div className={modalStyles.fieldRow}>
               <div className={formControlsStyles.field}>
-                <label htmlFor="inventory-name">품목명</label>
-                <input
-                  id="inventory-name"
-                  className={formControlsStyles.input}
-                  placeholder="품목명을 입력하세요"
-                  value={newItem.name}
-                  onChange={(e) =>
-                    setNewItem({
-                      ...newItem,
-                      name: e.target.value,
-                    })
-                  }
-                />
+                <label htmlFor="inventory-stock">현재고</label>
+                <input id="inventory-stock" type="number" min="0" step="1" className={formControlsStyles.input} value={newItem.stock}
+                onChange={(e) => setNewItem({
+                  ...newItem,
+                  stock: Number(e.target.value),
+                })}/>
               </div>
 
               <div className={formControlsStyles.field}>
-                <label htmlFor="inventory-category">분류</label>
-                <select
-                  id="inventory-category"
-                  className={formControlsStyles.input}
-                  value={newItem.category}
-                  onChange={(e) =>
-                    setNewItem({
-                      ...newItem,
-                      category: e.target.value,
-                    })
-                  }
-                >
-                  <option value="원자재">원자재</option>
-                  <option value="부품">부품</option>
-                  <option value="포장재">포장재</option>
-                  <option value="소모품">소모품</option>
-                </select>
+                <label htmlFor="inventory-price">단가 (원)</label>
+                <input id="inventory-price" type="number" min="0" step="1" className={formControlsStyles.input} value={newItem.unitPrice}
+                onChange={(e) => setNewItem({
+                  ...newItem,
+                  unitPrice: Number(e.target.value),
+                })}/>
               </div>
-
-              <div className={modalStyles.fieldRow}>
-                <div className={formControlsStyles.field}>
-                  <label htmlFor="inventory-stock">현재고</label>
-                  <input
-                    id="inventory-stock"
-                    type="number"
-                    min="0"
-                    step="1"
-                    className={formControlsStyles.input}
-                    value={newItem.stock}
-                    onChange={(e) =>
-                      setNewItem({
-                        ...newItem,
-                        stock: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-
-                <div className={formControlsStyles.field}>
-                  <label htmlFor="inventory-price">단가 (원)</label>
-                  <input
-                    id="inventory-price"
-                    type="number"
-                    min="0"
-                    step="1"
-                    className={formControlsStyles.input}
-                    value={newItem.unitPrice}
-                    onChange={(e) =>
-                      setNewItem({
-                        ...newItem,
-                        unitPrice: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className={modalStyles.actions}>
-              <button
-                type="button"
-                className={buttonStyles.button}
-                data-variant="outline"
-                onClick={() => setIsAddModalOpen(false)}
-                disabled={isSaving}
-              >
-                취소
-              </button>
-
-              <button
-                type="button"
-                className={buttonStyles.button}
-                onClick={handleAddItem}
-                disabled={isSaving}
-              >
-                {isSaving ? '등록 중...' : '품목 등록'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {editingItem && (
-        <div className={modalStyles.overlay}>
-          <div
-            className={modalStyles.dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="edit-inventory-title"
-          >
-            <h2 id="edit-inventory-title" className={modalStyles.title}>
-              재고 정보 수정
-            </h2>
+          <div className={modalStyles.actions}>
+            <button type="button" className={buttonStyles.button} data-variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={isSaving}>취소</button>
 
-            <div className={modalStyles.fields}>
-              <div className={formControlsStyles.field}>
-                <label htmlFor="edit-item-code">품목 코드</label>
-                <input
-                  id="edit-item-code"
-                  className={formControlsStyles.input}
-                  value={editingItem.id}
-                  readOnly
-                />
-              </div>
-
-              <div className={formControlsStyles.field}>
-                <label htmlFor="edit-item-name">품목명</label>
-                <input
-                  id="edit-item-name"
-                  className={formControlsStyles.input}
-                  value={editingItem.name}
-                  onChange={(e) =>
-                    setEditingItem({
-                      ...editingItem,
-                      name: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className={formControlsStyles.field}>
-                <label htmlFor="edit-item-category">분류</label>
-                <select
-                  id="edit-item-category"
-                  className={formControlsStyles.input}
-                  value={editingItem.category}
-                  onChange={(e) =>
-                    setEditingItem({
-                      ...editingItem,
-                      category: e.target.value,
-                    })
-                  }
-                >
-                  <option value="원자재">원자재</option>
-                  <option value="부품">부품</option>
-                  <option value="포장재">포장재</option>
-                  <option value="소모품">소모품</option>
-                </select>
-              </div>
-
-              <div className={modalStyles.fieldRow}>
-                <div className={formControlsStyles.field}>
-                  <label htmlFor="edit-item-stock">현재고</label>
-                  <input
-                    id="edit-item-stock"
-                    type="number"
-                    min="0"
-                    step="1"
-                    className={formControlsStyles.input}
-                    value={editingItem.stock}
-                    onChange={(e) =>
-                      setEditingItem({
-                        ...editingItem,
-                        stock: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-
-                <div className={formControlsStyles.field}>
-                  <label htmlFor="edit-item-price">단가 (원)</label>
-                  <input
-                    id="edit-item-price"
-                    type="number"
-                    min="0"
-                    step="1"
-                    className={formControlsStyles.input}
-                    value={editingItem.unitPrice}
-                    onChange={(e) =>
-                      setEditingItem({
-                        ...editingItem,
-                        unitPrice: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className={modalStyles.actions}>
-              <button
-                type="button"
-                className={buttonStyles.button}
-                data-variant="outline"
-                disabled={isSaving}
-                onClick={() => setEditingItem(null)}
-              >
-                취소
-              </button>
-
-              <button
-                type="button"
-                className={buttonStyles.button}
-                disabled={isSaving}
-                onClick={handleUpdateItem}
-              >
-                {isSaving ? '저장 중...' : '수정 저장'}
-              </button>
-            </div>
+            <button type="button" className={buttonStyles.button} onClick={handleAddItem} disabled={isSaving}>{isSaving ? '등록 중...' : '품목 등록'}</button>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {deletingItem && (
-        <DeleteConfirmModal
-          message={`${deletingItem.name} (${deletingItem.id}) 품목을 삭제하시겠습니까?`}
-          isDeleting={isSaving}
-          onClose={() => setDeletingItem(null)}
-          onConfirm={handleDeleteItem}
-        />
-      )}
-      {notice && <AlertModal isOpen {...notice} onClose={() => setNotice(null)} />}
+    {editingItem && (
+      <div className={modalStyles.overlay}>
+        <div className={modalStyles.dialog} role="dialog" aria-modal="true" aria-labelledby="edit-inventory-title">
+          <h2 id="edit-inventory-title" className={modalStyles.title}>재고 정보 수정</h2>
+
+          <div className={modalStyles.fields}>
+            <div className={formControlsStyles.field}>
+              <label htmlFor="edit-item-code">품목 코드</label>
+              <input id="edit-item-code" className={formControlsStyles.input} value={editingItem.id} readOnly/>
+            </div>
+
+            <div className={formControlsStyles.field}>
+              <label htmlFor="edit-item-name">품목명</label>
+              <input id="edit-item-name" className={formControlsStyles.input} value={editingItem.name}
+              onChange={(e) => setEditingItem({
+                ...editingItem,
+                name: e.target.value,
+              })}/>
+            </div>
+
+            <div className={formControlsStyles.field}>
+              <label htmlFor="edit-item-category">분류</label>
+              <select id="edit-item-category" className={formControlsStyles.input} value={editingItem.category}
+              onChange={(e) => setEditingItem({
+                ...editingItem,
+                category: e.target.value,
+              })}>
+                <option value="원자재">원자재</option>
+                <option value="부품">부품</option>
+                <option value="포장재">포장재</option>
+                <option value="소모품">소모품</option>
+              </select>
+            </div>
+
+            <div className={modalStyles.fieldRow}>
+              <div className={formControlsStyles.field}>
+                <label htmlFor="edit-item-stock">현재고</label>
+                <input id="edit-item-stock" type="number" min="0" step="1" className={formControlsStyles.input} value={editingItem.stock}
+                onChange={(e) => setEditingItem({
+                  ...editingItem,
+                  stock: Number(e.target.value),
+                })}/>
+              </div>
+
+              <div className={formControlsStyles.field}>
+                <label htmlFor="edit-item-price">단가 (원)</label>
+                <input id="edit-item-price" type="number" min="0" step="1" className={formControlsStyles.input} value={editingItem.unitPrice}
+                onChange={(e) => setEditingItem({
+                  ...editingItem,
+                  unitPrice: Number(e.target.value),
+                })}/>
+              </div>
+            </div>
+          </div>
+
+          <div className={modalStyles.actions}>
+            <button type="button" className={buttonStyles.button} data-variant="outline" disabled={isSaving} onClick={() => setEditingItem(null)}>취소</button>
+
+            <button type="button" className={buttonStyles.button} disabled={isSaving} onClick={handleUpdateItem}>{isSaving ? '저장 중...' : '수정 저장'}</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {deletingItem && (
+      <DeleteConfirmModal message={`${deletingItem.name} (${deletingItem.id}) 품목을 삭제하시겠습니까?`} isDeleting={isSaving} onClose={() => setDeletingItem(null)} onConfirm={handleDeleteItem}/>
+    )}
+    {notice && <AlertModal isOpen {...notice} onClose={() => setNotice(null)} />}
     </>
   );
 }
