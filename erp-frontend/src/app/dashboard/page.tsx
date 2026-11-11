@@ -38,6 +38,15 @@ interface InventoryItem {
   status: 'normal' | 'low' | 'out';
 }
 
+interface Employee {
+  id: string;
+  name: string;
+  department: string;
+  role: string;
+  status: 'active' | 'leave' | 'resigned';
+  joinDate: string;
+}
+
 const statusLabels = { planning: '생산 대기', progress: '생산 중', completed: '생산 완료' };
 
 export default function DashboardPage() {
@@ -48,6 +57,10 @@ export default function DashboardPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [inventoryError, setInventoryError] = useState(false);
+
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employeeLoading, setEmployeeLoading] = useState(true);
+  const [employeeError, setEmployeeError] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -83,6 +96,23 @@ export default function DashboardPage() {
     fetchInventory();
   }, []);
 
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await axios.get<Employee[]>('http://127.0.0.1:8080/api/hr/employees');
+
+        setEmployees(response.data);
+      } catch (error) {
+        console.error('임직원 조회 실패: ', error);
+        setEmployeeError(true);
+      } finally {
+        setEmployeeLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, []);
+
   const completedOrders = orders.filter((order) => order.status === 'completed').length;
 
   const metrics = [
@@ -94,7 +124,10 @@ export default function DashboardPage() {
       label: '재고 부족 품목',
       value: inventoryLoading ? '조회 중' : inventoryError ? '조회 실패' : `${items.filter((item) => item.status !== 'normal').length}건`
     },
-    { label: '등록 임직원', value: '4명' }
+    {
+      label: '등록 임직원',
+      value: employeeLoading ? '조회 중' : employeeError ? '조회 실패' : `${employees.length}명`
+    }
   ];
 
   const productionChartData = [
@@ -128,6 +161,21 @@ export default function DashboardPage() {
   ];
 
   const inventoryColors = ['#22c55e', '#f59e0b', '#ef4444'];
+
+  const employeeChartData = [
+    {
+      status: '재직',
+      count: employees.filter((employee) => employee.status === 'active').length
+    },
+    {
+      status: '휴직',
+      count: employees.filter((employee) => employee.status === 'leave').length
+    },
+    {
+      status: '퇴사',
+      count: employees.filter((employee) => employee.status === 'resigned').length
+    }
+  ]
 
   return (
     <Layout>
@@ -200,6 +248,104 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
+
+      <section className={dataView.panel}>
+        <header className={dataView.panelHeader}>
+          <div>
+            <h2>인사 현황</h2>
+            <p>재직 상태별 임직원 수</p>
+          </div>
+        </header>
+
+        <div style={{ width: '100%', height: 300 }}>
+          {employeeLoading ? (
+            <p>임직원 데이터를 불러오는 중입니다...</p>
+          ) : employeeError ? (
+            <p>임직원 데이터를 불러오지 못했습니다.</p>
+          ) : employees.length === 0 ? (
+            <p>등록된 임직원이 없습니다.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={employeeChartData} layout='vertical' margin={{ top: 10, right: 30, left: 10, bottom: 10}}>
+                <CartesianGrid strokeDasharray="3 3"/>
+                <XAxis type='number' allowDecimals={false}/>
+                <YAxis dataKey="status" type='category' width={50}/>
+                <Tooltip/>
+                <Bar dataKey="count" name="임직원 수" fill='#6366f1' radius={[0, 6, 6, 0]}/>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+
+      <section className={dataView.panel}>
+        <header className={dataView.panelHeader}>
+          <div>
+            <h2>최근 생산 오더</h2>
+            <p>생산 완료 {completedOrders}건</p>
+          </div>
+
+          <Link href="/dashboard/production" className={buttons.button} data-variant="outline" data-size="small">전체 오더 보기</Link>
+        </header>
+
+        <div className={dataView.tableScroller}>
+          <table className={dataView.table}>
+            <thead>
+              <tr>
+                <th>오더 번호</th>
+                <th>제품명</th>
+                <th className={view.number}>수량</th>
+                <th>상태</th>
+                <th className={view.progressCell}>진행률</th>
+                <th>납기일</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6}>생산 오더를 불러오는 중입니다...</td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td colSpan={6}>생산 오더를 불러오지 못했습니다.</td>
+                </tr>
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>등록된 생산 오더가 없습니다.</td>
+                </tr>
+              ) : (
+                orders.slice(0, 5).map((order) => (
+                  <tr key={order.id}>
+                    <td>
+                      <strong>{order.id}</strong>
+                    </td>
+
+                    <td>{order.productName}</td>
+
+                    <td className={view.number}>
+                      {order.quantity.toLocaleString()}개
+                    </td>
+
+                    <td>
+                      <span className={dataView.badge} data-tone={order.status === 'completed' ? 'success' : order.status === 'progress' ? 'primary' : 'secondary'}>{statusLabels[order.status]}</span>
+                    </td>
+
+                    <td>
+                      <div className={view.progress}>
+                        <span>{order.progress}%</span>
+                        <progress className={view.progressBar} value={order.progress} max={100} data-completed={order.status === 'completed' || undefined} aria-label={order.id + ' 진행률'}/>
+                      </div>
+                    </td>
+
+                    <td>{order.dueDate}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </Layout>
   );
 }

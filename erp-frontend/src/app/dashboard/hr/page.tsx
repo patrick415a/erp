@@ -115,6 +115,17 @@ export default function HrPage() {
 
   const selectedEmployee = dialog?.mode === 'edit' ? dialog.employee : undefined;
 
+  //이번 달 신규 입사자 수 계산
+  const today = Temporal.Now.plainDateISO();
+
+  const newEmployeesThisMonth = employees.filter((employee) => {
+    const joinDate = Temporal.PlainDate.from(employee.joinDate);
+
+    return (
+      joinDate.year === today.year && joinDate.month === today.month
+    );
+  }).length;
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -174,7 +185,7 @@ export default function HrPage() {
             </section>
             <section className={dataViewStyles.statCard} data-tone="primary">
               <span className={dataViewStyles.statLabel}>이번 달 신규 입사</span>
-              <strong className={dataViewStyles.statValue}>0명</strong>
+              <strong className={dataViewStyles.statValue}>{newEmployeesThisMonth}명</strong>
               <span className={dataViewStyles.statDecoration}>
                 <Icon name="check" size={19} />
               </span>
