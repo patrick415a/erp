@@ -136,7 +136,7 @@ export default function Member() {
         if(token){
           dispatch(setLogin({
             token,
-            userInfo: { firstName: formData.firstName, lastName: formData.lastName },
+            userInfo: { firstName: formData.firstName, lastName: formData.lastName, email: formData.email },
           }));
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           setNextRoute('/dashboard'); // 로그인 페이지로 이동

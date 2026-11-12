@@ -34,6 +34,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/production/**").permitAll()
                         .requestMatchers("/api/inventory/**").permitAll()
                         .requestMatchers("/api/hr/employees/**").permitAll()
+                        .requestMatchers("/api/settings/company").permitAll() // 회사 정보 컨트롤러에서 JWT를 확인합니다.
                         .anyRequest().authenticated()
                 );
         return http.build();

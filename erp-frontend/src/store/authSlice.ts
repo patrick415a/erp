@@ -6,6 +6,7 @@ import { memberApiUrl } from '@/app/api/members';
 interface UserInfo {
   firstName: string | null;
   lastName: string | null;
+  email: string | null;
 }
 
 // 인증 상태를 가질 데이터 정의
@@ -37,7 +38,7 @@ export const loadUserInfo = createAsyncThunk<UserInfo, string, { state: { auth: 
       signal,
       timeout: 5000,
     });
-    return { firstName: data.firstName, lastName: data.lastName };
+    return { firstName: data.firstName, lastName: data.lastName, email: data.email ?? null };
   },
   {
     condition: (token, { getState }) => {

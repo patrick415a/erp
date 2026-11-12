@@ -60,13 +60,22 @@
   &[data-list] {
     min-block-size: 420px;
   }
-  h3 {
+  > h3 {
     margin: 0 -28px 28px;
     padding: 16px 28px;
     font-size: 14px;
     font-weight: 650;
     border-bottom: 1px solid var(--border);
   }
+}
+
+.itemToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
 }
 
 .itemTable table {
@@ -108,6 +117,15 @@
       border-color: #7394ef;
       box-shadow: 0 0 0 3px #3563e910;
     }
+  }
+}
+
+.formError {
+  margin-top: 16px;
+  color: #b14049;
+
+  a {
+    text-decoration: underline;
   }
 }
 
@@ -154,7 +172,7 @@
     &[data-list] {
       min-block-size: 0;
     }
-    h3 {
+    > h3 {
       margin: 0 -20px 24px;
       padding: 18px 20px;
     }

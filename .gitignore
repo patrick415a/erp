@@ -20,6 +20,7 @@
 **/application-*.yml
 **/application.yaml
 **/application-*.yaml
+!/erp-backend/src/main/resources/application.yml
 
 # Local and IDE files
 **/.DS_Store

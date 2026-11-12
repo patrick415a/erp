@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Layout } from '@/components/Layout';
-import AlertModal from '@/components/modal/AlertModal';
+import { EmailMessageForm } from '@/components/EmailMessageForm';
 import dataView from '@/assets/common/DataView.module.scss';
-import forms from '@/assets/common/FormControls.module.scss';
 import buttons from '@/assets/common/Button.module.scss';
 import styles from '@/assets/dashboard/settings/Settings.module.scss';
 
@@ -25,20 +24,6 @@ const questions = [
 
 export default function SupportPage() {
   const [tab, setTab] = useState<'faq' | 'inquiry'>('faq');
-  const [inquiryError, setInquiryError] = useState('');
-  const [isSentModalOpen, setIsSentModalOpen] = useState(false);
-
-  function checkInquiry(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const complete = ['title', 'message'].every((field) => String(data.get(field) ?? '').trim());
-    if (!complete) {
-      setInquiryError('제목과 내용을 모두 입력해 주세요.');
-      return;
-    }
-    setInquiryError('');
-    setIsSentModalOpen(true);
-  }
 
   return (
     <Layout>
@@ -63,10 +48,7 @@ export default function SupportPage() {
                   className={buttons.button}
                   data-variant="ghost"
                   aria-pressed={tab === id}
-                  onClick={() => {
-                    setTab(id);
-                    setInquiryError('');
-                  }}
+                  onClick={() => setTab(id)}
                 >
                   {label}
                 </button>
@@ -76,43 +58,19 @@ export default function SupportPage() {
         </nav>
         <section className={styles.mainPanel + ' ' + dataView.panel}>
           <h3>{tab === 'faq' ? '자주 묻는 질문' : '1:1 문의'}</h3>
-          {tab === 'faq' ? (
+          {tab === 'faq' && (
             questions.map(([question, answer]) => (
               <details className={styles.formGroup} key={question}>
                 <summary>{question}</summary>
                 <p>{answer}</p>
               </details>
             ))
-          ) : (
-            <form onSubmit={checkInquiry} onChange={() => setInquiryError('')}>
-              <div className={styles.formGroup}>
-                <label htmlFor="inquiry-title">문의 제목</label>
-                <input id="inquiry-title" name="title" required maxLength={100} />
-              </div>
-              <div className={styles.formGroup}>
-                <label htmlFor="inquiry-message">문의 내용</label>
-                <textarea
-                  id="inquiry-message"
-                  name="message"
-                  className={forms.textarea}
-                  required
-                  maxLength={2000}
-                />
-              </div>
-              <button type="submit" className={styles.saveBtn}>
-                전송
-              </button>
-              {inquiryError && <p role="status" style={{ marginTop: '16px' }}>{inquiryError}</p>}
-            </form>
           )}
+          <div hidden={tab !== 'inquiry'}>
+            <EmailMessageForm subjectLabel="문의 제목" messageLabel="문의 내용" submitClassName={styles.saveBtn} />
+          </div>
         </section>
       </div>
-      <AlertModal
-        isOpen={isSentModalOpen}
-        message="전송이 완료되었습니다."
-        status="success"
-        onClose={() => setIsSentModalOpen(false)}
-      />
     </Layout>
   );
 }

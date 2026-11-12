@@ -6,6 +6,7 @@ import formControlsStyles from '@/assets/common/FormControls.module.scss';
 import buttonStyles from '@/assets/common/Button.module.scss';
 
 import { Layout } from '@/components/Layout';
+import { EmailMessageForm } from '@/components/EmailMessageForm';
 import { useSchedules } from '@/components/calendar/scheduleStorage';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 import modalStyles from '@/assets/modal/ModalParts.module.scss';
@@ -56,9 +57,6 @@ export default function MyPageClient() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [accountNotice, setAccountNotice] = useState<(AlertNotice & { returnToLogin?: boolean }) | null>(null);
   const [tab, setTab] = useState<'account' | 'message' | 'schedule'>('account');
-  const [message, setMessage] = useState('');
-  const [messageError, setMessageError] = useState('');
-  const [isSentModalOpen, setIsSentModalOpen] = useState(false);
   const schedules = useSchedules();
   const orderedSchedules = [...schedules].sort(
     (a, b) => a.date.localeCompare(b.date) || (a.time ?? '24:00').localeCompare(b.time ?? '24:00'),
@@ -322,45 +320,10 @@ export default function MyPageClient() {
             </form>
           </div>
         )}
-        {tab === 'message' && (
-          <section className={settingsStyles.mainPanel}>
-            <h3>관리자 쪽지</h3>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!message.trim()) {
-                  setMessageError('쪽지 내용을 입력해 주세요.');
-                  return;
-                }
-                setMessageError('');
-                setIsSentModalOpen(true);
-              }}
-            >
-              <div className={settingsStyles.formGroup}>
-                <label htmlFor="message-recipient">받는 사람</label>
-                <input id="message-recipient" value="시스템 관리자" readOnly />
-              </div>
-              <div className={settingsStyles.formGroup}>
-                <label htmlFor="admin-message">쪽지 내용</label>
-                <textarea
-                  id="admin-message"
-                  className={formControlsStyles.textarea}
-                  value={message}
-                  onChange={(event) => {
-                    setMessage(event.target.value);
-                    setMessageError('');
-                  }}
-                  required
-                  maxLength={2000}
-                />
-              </div>
-              <button className={buttonStyles.button} type="submit">
-                전송
-              </button>
-              {messageError && <p role="status" style={{ marginTop: '16px' }}>{messageError}</p>}
-            </form>
-          </section>
-        )}
+        <section className={settingsStyles.mainPanel} hidden={tab !== 'message'}>
+          <h3>관리자 쪽지</h3>
+          <EmailMessageForm subjectLabel="받는 사람" messageLabel="쪽지 내용" fixedSubject="시스템 관리자" />
+        </section>
         {tab === 'schedule' && (
           <section className={dataViewStyles.panel}>
             <header className={dataViewStyles.panelHeader}>
@@ -411,12 +374,6 @@ export default function MyPageClient() {
           </section>
         )}
       </div>
-      <AlertModal
-        isOpen={isSentModalOpen}
-        message="전송이 완료되었습니다."
-        status="success"
-        onClose={() => setIsSentModalOpen(false)}
-      />
       {accountNotice && (
         <AlertModal
           isOpen
