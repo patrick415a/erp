@@ -137,7 +137,7 @@ export default function SettingsPage() {
             ))}
           </ul>
         </nav>
-        <section className={styles.mainPanel + ' ' + dataView.panel}>
+        <section className={styles.mainPanel + ' ' + dataView.panel} data-list={activeMenu !== 'company' || undefined}>
           <h3>{menus.find(([id]) => id === activeMenu)?.[1]}</h3>
           {activeMenu === 'company' && (
             <form onSubmit={saveCompany}>
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                   신규 품목 등록
                 </button>
               </div>
-              <div className={dataView.tableScroller}>
+              <div className={dataView.tableScroller + ' ' + styles.itemTable}>
                 <table className={dataView.table}>
                   <thead>
                     <tr>
@@ -223,7 +223,7 @@ export default function SettingsPage() {
             </>
           )}
           {activeMenu === 'users' && (
-            <ul className={modal.scheduleList}>
+            <ul className={styles.roleList}>
               {roles.map((role) => (
                 <li className={modal.scheduleItem} key={role}>
                   <div className={modal.scheduleHeader}>

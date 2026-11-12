@@ -2,7 +2,9 @@
 
 import dataViewStyles from '@/assets/common/DataView.module.scss';
 import buttonStyles from '@/assets/common/Button.module.scss';
+import formStyles from '@/assets/common/FormControls.module.scss';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 
 import { Layout } from '@/components/Layout';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
@@ -21,6 +23,15 @@ interface ProductionOrder {
   dueDate: string;
 }
 
+async function requestProductionOrders(signal?: AbortSignal) {
+  const token = localStorage.getItem('token');
+  const { data } = await axios.get<ProductionOrder[]>('http://localhost:8080/api/production/orders', {
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  });
+  return data;
+}
+
 export default function ProductionPage() {
   const [notice, setNotice] = useState<AlertNotice | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -33,6 +44,8 @@ export default function ProductionPage() {
   */
 
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const progressCount = orders.filter((order) => order.status === 'progress').length;
 
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -54,6 +67,12 @@ export default function ProductionPage() {
   const safeCurrentPage = Math.min(currentPage, totalPages);
 
   const paginatedOrders = filteredOrders.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage);
+  const emptyMessage = appliedKeyword.trim() ? '검색 결과가 없습니다.' : '등록된 생산 오더가 없습니다.';
+  const listMessage = isLoading
+    ? '생산 오더를 불러오는 중입니다.'
+    : loadError && orders.length === 0
+      ? '생산 오더를 불러오지 못했습니다.'
+      : filteredOrders.length ? null : emptyMessage;
 
   const planningCount = orders.filter((order) => order.status === 'planning').length;
 
@@ -96,20 +115,29 @@ export default function ProductionPage() {
 
   const fetchProductionOrders = async () => {
     try {
-      const token = localStorage.getItem('token');
-
-      const res = await axios.get('http://localhost:8080/api/production/orders', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setOrders(res.data);
+      setOrders(await requestProductionOrders());
+      setLoadError(false);
     } catch (e) {
       console.error(e);
+      setLoadError(true);
     }
   };
 
   useEffect(() => {
-    fetchProductionOrders();
+    const controller = new AbortController();
+
+    requestProductionOrders(controller.signal).then((data) => {
+      if (!controller.signal.aborted) setOrders(data);
+    }).catch((error) => {
+      if (!controller.signal.aborted) {
+        console.error('생산 오더 조회 실패:', error);
+        setLoadError(true);
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted) setIsLoading(false);
+    });
+
+    return () => controller.abort();
   }, []);
 
   const handleAddOrder = async () => {
@@ -269,15 +297,14 @@ export default function ProductionPage() {
           <header className={dataViewStyles.panelHeader}>
             <h2>생산 오더 목록</h2>
 
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <input type="text" placeholder='제품명 또는 코드 검색...' value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} 
+            <div className={view.search}>
+              <input type="text" className={formStyles.input} aria-label="제품명 또는 코드 검색" placeholder="제품명 또는 코드 검색..." value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   setAppliedKeyword(searchKeyword);
                   setCurrentPage(1);
                 }
-              }}
-              style={{ width: '200px', padding: '8px 12px', border: '1px solid #dbe2ef', borderRadius: '6px', fontSize: '13px' }}/>
+              }}/>
               <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" onClick={() => { setAppliedKeyword(searchKeyword); setCurrentPage(1); }}>검색</button>
             </div>
           </header>
@@ -297,7 +324,13 @@ export default function ProductionPage() {
               </thead>
 
               <tbody>
-                {paginatedOrders.map((order) => {
+                {listMessage ? (
+                  <tr>
+                    <td colSpan={7} className={dataViewStyles.tableMessage}>
+                      <p role="status">{listMessage}</p>
+                    </td>
+                  </tr>
+                ) : paginatedOrders.map((order) => {
                   const badge = getBadgeStyle(order.status);
                   return (
                     <tr key={order.id}>
@@ -330,16 +363,8 @@ export default function ProductionPage() {
             </table>
           </div>
 
-          {filteredOrders.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '16px' }}>
-              <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === 1} onClick={() => setCurrentPage(safeCurrentPage - 1)}>이전</button>
-
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                <button key={page} type='button' className={buttonStyles.button} data-variant={safeCurrentPage === page ? undefined : 'outline'} data-size="small" onClick={() => setCurrentPage(page)}>{page}</button>
-              ))}
-
-              <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === totalPages} onClick={() => setCurrentPage(safeCurrentPage + 1)}>다음</button>
-            </div>
+          {!listMessage && (
+            <Pagination currentPage={safeCurrentPage} totalPages={totalPages} onPageChange={setCurrentPage} label="생산 오더 목록 페이지" />
           )}
         </section>
       </div>

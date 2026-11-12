@@ -4,6 +4,7 @@ import dataViewStyles from '@/assets/common/DataView.module.scss';
 import buttonStyles from '@/assets/common/Button.module.scss';
 import formControlsStyles from '@/assets/common/FormControls.module.scss';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 
 import { Layout } from '@/components/Layout';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
@@ -347,15 +348,7 @@ export default function InventoryPage() {
           </div>
 
           {!isLoading && filteredItems.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '16px' }}>
-              <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === 1} onClick={() => setCurrentPage(safeCurrentPage - 1)}>이전</button>
-
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                <button key={page} type='button' className={buttonStyles.button} data-variant={safeCurrentPage === page ? undefined : 'outline'} data-size="small" onClick={() => setCurrentPage(page)}>{page}</button>
-              ))}
-
-              <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === totalPages} onClick={() => setCurrentPage(safeCurrentPage + 1)}>다음</button>
-            </div>
+            <Pagination currentPage={safeCurrentPage} totalPages={totalPages} onPageChange={setCurrentPage} label="재고 목록 페이지" />
           )}
 
         </section>

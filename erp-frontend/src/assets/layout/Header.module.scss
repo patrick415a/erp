@@ -22,7 +22,7 @@
     align-items: center;
     position: relative;
     font-size: 13px;
-    color: #8b95a7;
+    color: var(--muted);
     white-space: nowrap;
     transition: color .15s;
     &:hover {
@@ -76,7 +76,7 @@
     display: block;
     font-size: 12px;
     font-weight: 400;
-    color: #95a0b2;
+    color: var(--muted);
   }
 }
 
@@ -89,7 +89,7 @@
   background: transparent;
   border: 0;
   border-left: 1px solid var(--border);
-  color: #8c97ab;
+  color: var(--muted);
   font-size: 13px;
   // 배경·크기·테두리는 유지하고 글자와 아이콘의 색상만 바꿉니다.
   transition: color .15s;
@@ -121,6 +121,7 @@
     display: block;
     padding: 11px 8px;
     border-bottom: 1px solid #f0f2f7;
+    color: var(--muted);
     font-size: 13px;
     &[aria-current] {
       color: var(--primary);

@@ -134,7 +134,10 @@ export default function Member() {
         // 만약 백엔드에서 가입과 동시에 토큰을 내려준다면 바로 전역 상태(Redux)에 저장
         const token = response.data.token;
         if(token){
-          dispatch(setLogin({token}));
+          dispatch(setLogin({
+            token,
+            userInfo: { firstName: formData.firstName, lastName: formData.lastName },
+          }));
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           setNextRoute('/dashboard'); // 로그인 페이지로 이동
         }else {

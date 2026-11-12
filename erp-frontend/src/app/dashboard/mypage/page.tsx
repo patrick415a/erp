@@ -7,13 +7,15 @@ import buttonStyles from '@/assets/common/Button.module.scss';
 
 import { Layout } from '@/components/Layout';
 import { useSchedules } from '@/components/calendar/scheduleStorage';
-import AlertModal from '@/components/modal/AlertModal';
+import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 import modalStyles from '@/assets/modal/ModalParts.module.scss';
 import settingsStyles from '@/assets/dashboard/settings/Settings.module.scss';
 import Link from 'next/link';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { setLogout } from '@/store/authSlice';
 
 import view from '@/assets/dashboard/WorkPage.module.scss';
 
@@ -21,8 +23,26 @@ import Script from 'next/script';
 
 import styles from '@/assets/dashboard/mypage/Mypage.module.scss';
 
+const loginRequiredNotice: AlertNotice = { message: '로그인이 필요합니다.', status: 'error' };
+
+function isUnauthorized(error: unknown) {
+  return axios.isAxiosError(error) && error.response?.status === 401;
+}
+
+async function requestMemberProfile(signal: AbortSignal) {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+
+  const { data } = await axios.get('http://127.0.0.1:8080/api/members/profile', {
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  });
+  return data;
+}
+
 export default function MyPageClient() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({
     position: '',
     tel: '',
@@ -30,10 +50,11 @@ export default function MyPageClient() {
     detailAddress: ''
   });
 
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordRepeat, setNewPasswordRepeat] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [accountNotice, setAccountNotice] = useState<(AlertNotice & { returnToLogin?: boolean }) | null>(null);
   const [tab, setTab] = useState<'account' | 'message' | 'schedule'>('account');
   const [message, setMessage] = useState('');
   const [messageError, setMessageError] = useState('');
@@ -43,39 +64,40 @@ export default function MyPageClient() {
     (a, b) => a.date.localeCompare(b.date) || (a.time ?? '24:00').localeCompare(b.time ?? '24:00'),
   );
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem('token');
+  const showReloginNotice = useCallback((notice: AlertNotice = loginRequiredNotice) => {
+    dispatch(setLogout());
+    delete axios.defaults.headers.common['Authorization'];
+    setAccountNotice({ ...notice, returnToLogin: true });
+  }, [dispatch]);
 
-      if (!token) {
-        alert('로그인이 필요합니다.');
-        router.replace('/');
+  useEffect(() => {
+    const controller = new AbortController();
+
+    requestMemberProfile(controller.signal).then((profile) => {
+      if (controller.signal.aborted) return;
+      if (profile === null) {
+        showReloginNotice();
         return;
       }
 
-      try {
-        const response = await axios.get('http://127.0.0.1:8080/api/members/profile', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        const profile = response.data;
-
-        setFormData({
-          position: profile.position ?? '',
-          tel: profile.tel ?? '',
-          address: profile.address ?? '',
-          detailAddress: profile.detailAddress ?? ''
-        });
-      } catch (error) {
-        console.error('회원정보 조회 실패: ', error);
-        alert('회원정보를 불러오지 못했습니다.');
-      } finally {
-        setIsProfileLoading(false);
+      setFormData({
+        position: profile.position ?? '',
+        tel: profile.tel ?? '',
+        address: profile.address ?? '',
+        detailAddress: profile.detailAddress ?? ''
+      });
+    }).catch((error) => {
+      if (controller.signal.aborted) return;
+      if (isUnauthorized(error)) {
+        showReloginNotice();
+        return;
       }
-    };
+      console.error('회원정보 조회 실패: ', error);
+      alert('회원정보를 불러오지 못했습니다.');
+    });
 
-    fetchProfile();
-  }, [router]);
+    return () => controller.abort();
+  }, [showReloginNotice]);
 
   const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -83,8 +105,7 @@ export default function MyPageClient() {
     const token = localStorage.getItem('token');
 
     if (!token) {
-      alert('로그인이 필요합니다.');
-      router.push('/');
+      showReloginNotice();
       return;
     }
 
@@ -95,6 +116,10 @@ export default function MyPageClient() {
 
       alert('회원정보가 성공적으로 수정되었습니다.');
     } catch (error) {
+      if (isUnauthorized(error)) {
+        showReloginNotice();
+        return;
+      }
       console.error('회원정보 수정 실패: ', error);
       alert('회원정보 수정에 실패했습니다.');
     }
@@ -102,34 +127,51 @@ export default function MyPageClient() {
 
   const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isChangingPassword || accountNotice) return;
 
     if (newPassword !== newPasswordRepeat) {
-      alert('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.');
+      setAccountNotice({ message: '새 비밀번호와 비밀번호 확인이 일치하지 않습니다.', status: 'error' });
       return;
     }
 
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('로그인이 필요합니다.');
-      router.push('/');
+      showReloginNotice();
       return;
     }
 
+    setIsChangingPassword(true);
     try {
       await axios.post(
         'http://127.0.0.1:8080/api/members/change-password',
         { oldPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } }, // JWT 토큰을 헤더에 담아 전송
       );
-      alert('비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.');
-
-      // 보안을 위해 기존 토큰 파기 후 로그인 화면으로 이동
-      localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
-      router.push('/');
-    } catch (error: any) {
-      alert(error.response?.data || '비밀번호 변경에 실패했습니다.');
+      setOldPassword('');
+      setNewPassword('');
+      setNewPasswordRepeat('');
+      showReloginNotice({
+        message: '비밀번호가 성공적으로 변경되었습니다.\n다시 로그인해주세요.',
+        status: 'success',
+      });
+    } catch (error) {
+      if (isUnauthorized(error)) {
+        showReloginNotice();
+        return;
+      }
+      const response = axios.isAxiosError(error) ? error.response?.data : undefined;
+      setAccountNotice({
+        message: typeof response === 'string' && response.trim() ? response : '비밀번호 변경에 실패했습니다.',
+        status: 'error',
+      });
+    } finally {
+      setIsChangingPassword(false);
     }
+  };
+
+  const closeAccountNotice = () => {
+    if (accountNotice?.returnToLogin) router.replace('/');
+    setAccountNotice(null);
   };
 
   // 2. 다음 우편번호 검색 API 핸들러 완성
@@ -234,12 +276,14 @@ export default function MyPageClient() {
                 </button>
               </div>
             </form>
-            <form onSubmit={handleChangePassword} className={view.accountForm}>
+            <form onSubmit={handleChangePassword} className={view.accountForm} aria-busy={isChangingPassword}>
               <h3 className={styles.subTitle}>비밀번호 변경</h3>
               <div className={contentStyles.fieldSpacing}>
-                <label className={formControlsStyles.label}>기존 비밀번호</label>
+                <label htmlFor="current-password" className={formControlsStyles.label}>기존 비밀번호</label>
                 <input
+                  id="current-password"
                   type="password"
+                  autoComplete="current-password"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
                   required
@@ -247,9 +291,11 @@ export default function MyPageClient() {
                 />
               </div>
               <div className={contentStyles.fieldSpacing}>
-                <label className={formControlsStyles.label}>새 비밀번호</label>
+                <label htmlFor="new-password" className={formControlsStyles.label}>새 비밀번호</label>
                 <input
+                  id="new-password"
                   type="password"
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
@@ -257,9 +303,11 @@ export default function MyPageClient() {
                 />
               </div>
               <div className={contentStyles.fieldSpacing}>
-                <label className={formControlsStyles.label}>새 비밀번호 확인</label>
+                <label htmlFor="confirm-password" className={formControlsStyles.label}>새 비밀번호 확인</label>
                 <input
+                  id="confirm-password"
                   type="password"
+                  autoComplete="new-password"
                   value={newPasswordRepeat}
                   onChange={(e) => setNewPasswordRepeat(e.target.value)}
                   required
@@ -267,7 +315,7 @@ export default function MyPageClient() {
                 />
               </div>
               <div className={buttonStyles.buttonLeft}>
-                <button type="submit" data-variant="primary" className={buttonStyles.button}>
+                <button type="submit" data-variant="primary" className={buttonStyles.button} disabled={isChangingPassword}>
                   비밀번호 변경하기
                 </button>
               </div>
@@ -369,6 +417,14 @@ export default function MyPageClient() {
         status="success"
         onClose={() => setIsSentModalOpen(false)}
       />
+      {accountNotice && (
+        <AlertModal
+          isOpen
+          message={accountNotice.message}
+          status={accountNotice.status}
+          onClose={closeAccountNotice}
+        />
+      )}
     </Layout>
   );
 }

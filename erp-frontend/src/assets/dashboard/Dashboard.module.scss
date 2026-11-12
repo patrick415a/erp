@@ -1,0 +1,215 @@
+@use '../common/mixins';
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.metricCard {
+  @include mixins.surface;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 92px;
+  padding: 16px 20px;
+  transition: border-color .15s, background .15s;
+
+  &:hover {
+    border-color: #b9caf3;
+    background: #fbfcff;
+  }
+}
+
+.metricIcon, .stateIcon {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 8px;
+  color: var(--primary);
+  background: #edf2fe;
+}
+
+.metricCard[data-area='inventory'] .metricIcon {
+  color: #8a5a18;
+  background: #fff4e2;
+}
+
+.metricCard[data-area='hr'] .metricIcon {
+  color: #287768;
+  background: #eaf6f2;
+}
+
+.metricLabel {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.metricValue {
+  display: block;
+  margin-top: 3px;
+  font-size: 25px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+
+  &[data-status] {
+    color: var(--muted);
+    font-size: 16px;
+  }
+}
+
+.metricUnit {
+  margin-inline-start: 3px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.metricArrow {
+  display: flex;
+  color: var(--muted);
+}
+
+.chartGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  > section {
+    flex: 1 1 265px;
+    min-inline-size: 0;
+  }
+}
+
+.panelHeader {
+  h2 {
+    font-size: 15px;
+  }
+
+  p {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+}
+
+.chartBody {
+  --chart-blue: var(--primary);
+  --chart-teal: #368779;
+  --stock-normal: #368779;
+  --stock-low: #ce872d;
+  --stock-out: #c45b63;
+  --chart-grid: var(--border);
+  --chart-label: var(--muted);
+
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 228px;
+  padding: 16px;
+  font-size: 12px;
+}
+
+.chartState {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 18px;
+  color: var(--muted);
+  background: #f8faff;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 13px;
+
+  &[data-error] .stateIcon {
+    color: #a74249;
+    background: #fdf0f0;
+  }
+}
+
+.inventoryChart {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(84px, auto);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding-inline-end: 16px;
+}
+
+.donut {
+  position: relative;
+  min-width: 0;
+  height: 160px;
+}
+
+.donutTotal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: var(--muted);
+  pointer-events: none;
+
+  strong {
+    color: var(--text);
+    font-size: 21px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.legend {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  dt {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  dt::before {
+    content: '';
+    inline-size: 7px;
+    block-size: 7px;
+    border-radius: 50%;
+    background: var(--stock-normal);
+  }
+
+  [data-status='low']::before {
+    background: var(--stock-low);
+  }
+
+  [data-status='out']::before {
+    background: var(--stock-out);
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@include mixins.mobile {
+  .metricCard {
+    padding-inline: 16px;
+  }
+}

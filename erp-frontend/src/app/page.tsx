@@ -6,8 +6,9 @@ import buttonStyles from '@/assets/common/Button.module.scss';
 import { Brand } from '@/components/Brand';
 
 import { useDispatch } from 'react-redux';
-import { AppDispatch } from '@/store/store';
-import { setLogin } from '@/store/authSlice';
+import type { AppDispatch } from '@/store/store';
+import { loadUserInfo, setLogin } from '@/store/authSlice';
+import { memberApiUrl } from '@/app/api/members';
 
 import Link from 'next/link';
 import axios from 'axios';
@@ -18,12 +19,6 @@ import styles from '@/assets/auth/AuthForm.module.scss';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 
 type SocialProvider = 'google' | 'kakao';
-
-function socialLoginApi() {
-  const base =
-    process.env.NEXT_PUBLIC_ERP_API_URL || 'http://' + window.location.hostname + ':8080';
-  return base.replace(/\/$/, '') + '/api/members/oauth';
-}
 
 /*export const metadata: Metadata = {
   title: "로그인",
@@ -42,7 +37,7 @@ export default function Home() {
 
   // 확인 버튼을 눌렀을 때 이동할 경로를 저장 (로그인 성공 시 대시보드로 가기 위함)
   const [nextRoute, setNextRoute] = useState('/dashboard');
-  const [isSocialLoginPending, setIsSocialLoginPending] = useState(false);
+  const [isLoginPending, setIsLoginPending] = useState(false);
 
   const showLoginError = useCallback((message: string) => {
     setNotice({ message, status: 'error' });
@@ -50,9 +45,11 @@ export default function Home() {
   }, []);
 
   const completeLogin = useCallback(
-    (token: string) => {
+    async (token: string, signal?: AbortSignal) => {
       dispatch(setLogin({ token }));
       axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+      await dispatch(loadUserInfo(token));
+      if (signal?.aborted) return;
       setNotice({ message: '로그인되었습니다.', status: 'success' });
       setNextRoute('/dashboard');
     },
@@ -89,10 +86,10 @@ export default function Home() {
         return;
       }
 
-      setIsSocialLoginPending(true);
+      setIsLoginPending(true);
       axios
         .post<{ token: string }>(
-          socialLoginApi() + '/complete',
+          memberApiUrl() + '/oauth/complete',
           { code, state },
           {
             withCredentials: true,
@@ -102,7 +99,7 @@ export default function Home() {
         )
         .then(({ data }) => {
           if (!data.token) throw new Error('Missing login token');
-          completeLogin(data.token);
+          return completeLogin(data.token, controller.signal);
         })
         .catch((error) => {
           if (!controller.signal.aborted) {
@@ -115,7 +112,7 @@ export default function Home() {
           }
         })
         .finally(() => {
-          if (!controller.signal.aborted) setIsSocialLoginPending(false);
+          if (!controller.signal.aborted) setIsLoginPending(false);
         });
     }, 0);
 
@@ -126,35 +123,39 @@ export default function Home() {
   }, [completeLogin, showLoginError]);
 
   const startSocialLogin = async (provider: SocialProvider) => {
-    setIsSocialLoginPending(true);
+    setIsLoginPending(true);
     try {
       const { data } = await axios.post<{ authorizationUrl: string }>(
-        socialLoginApi() + '/' + provider + '/authorize',
+        memberApiUrl() + '/oauth/' + provider + '/authorize',
         null,
         { withCredentials: true, timeout: 8000 },
       );
       window.location.assign(data.authorizationUrl);
     } catch {
       showLoginError('소셜 로그인에 실패했습니다. 이메일로 로그인하거나 잠시 후 다시 시도해 주세요.');
-      setIsSocialLoginPending(false);
+      setIsLoginPending(false);
     }
   };
 
   // 로그인 폼 제출 핸들러
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isLoginPending) return;
 
+    setIsLoginPending(true);
     try {
       // 백엔드 로그인 API 호출
-      const response = await axios.post('http://127.0.0.1:8080/api/members/login', {
+      const response = await axios.post<{ token: string }>(memberApiUrl() + '/login', {
         email,
         password,
       });
 
-      if (response.status === 200) completeLogin(response.data.token);
+      if (response.status === 200) await completeLogin(response.data.token);
     } catch (error) {
       console.error('로그인 에러:', error);
       showLoginError('이메일 또는 비밀번호를 확인해 주세요.');
+    } finally {
+      setIsLoginPending(false);
     }
   };
 
@@ -214,7 +215,7 @@ export default function Home() {
             </div>
             <button
               type="submit"
-              disabled={isSocialLoginPending}
+              disabled={isLoginPending}
               data-full-width={true}
               className={`${buttonStyles.button} ${styles.submit}`}
             >
@@ -226,7 +227,7 @@ export default function Home() {
                 type="button"
                 data-provider="google"
                 className={buttonStyles.socialButton}
-                disabled={isSocialLoginPending}
+                disabled={isLoginPending}
                 onClick={() => void startSocialLogin('google')}
               >
                 Google로 로그인
@@ -235,7 +236,7 @@ export default function Home() {
                 type="button"
                 data-provider="kakao"
                 className={buttonStyles.socialButton}
-                disabled={isSocialLoginPending}
+                disabled={isLoginPending}
                 onClick={() => void startSocialLogin('kakao')}
               >
                 Kakao로 로그인

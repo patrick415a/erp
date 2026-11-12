@@ -9,7 +9,7 @@
   margin-bottom: 30px;
   h2 {
     margin: 0 14px 14px;
-    color: #a0a9ba;
+    color: var(--muted);
     font-size: 12px;
     line-height: 16px;
     font-weight: 500;
@@ -31,7 +31,7 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 6px;
-  color: #8893a7;
+  color: var(--muted);
   font-size: 13px;
   // 행 높이를 정수로 고정해 아래쪽 메뉴로 갈수록 소수점 위치가 누적되지 않게 합니다.
   height: 44px;
@@ -86,6 +86,6 @@
 .subtext {
   display: block;
   margin-top: 4px;
-  color: #a2acbc;
+  color: var(--muted);
   font-size: 13px;
 }

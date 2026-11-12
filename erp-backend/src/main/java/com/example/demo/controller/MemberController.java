@@ -61,15 +61,21 @@ public class MemberController {
     // 비밀번호 변경 (마이페이지용)
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(
-        @RequestHeader("Authorization") String token,
+        @RequestHeader(value = "Authorization", required = false) String authorization,
         @RequestBody PasswordChangeDto dto
     ) {
+        if (authorization == null || !authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        String email;
         try {
-            // "Bearer " 문자열 제거 후 토큰 파싱
-            String actualToken = token.substring(7);
-            // JwtProvider에 이메일 추출 메서드(getSubject)가 있다고 가정, 없을 경우 추가 필요
-            String email = jwtProvider.getEmailFromToken(actualToken);
+            email = jwtProvider.getEmailFromToken(authorization.substring(7));
+        } catch (JwtException | IllegalArgumentException e) {
+            return ResponseEntity.status(401).body("로그인이 만료되었습니다.");
+        }
+        if (email == null || email.isBlank()) return ResponseEntity.status(401).body("로그인이 필요합니다.");
 
+        try {
             memberService.changePassword(email, dto.getOldPassword(), dto.getNewPassword());
             return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
         } catch (Exception e) {

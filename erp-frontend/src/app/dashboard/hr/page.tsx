@@ -7,6 +7,7 @@ import modalStyles from '@/assets/modal/ModalParts.module.scss';
 import AlertModal from '@/components/modal/AlertModal';
 import ModalLayout from '@/components/modal/ModalLayout';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 import { Temporal } from '@js-temporal/polyfill';
 import axios from 'axios';
 import { Layout } from '@/components/Layout';
@@ -58,16 +59,28 @@ export default function HrPage() {
   const paginatedEmployees = filteredEmployees.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [dialog, setDialog] = useState<EmployeeDialog | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogError, setDialogError] = useState('');
   const [notice, setNotice] = useState('');
+  const emptyMessage = appliedKeyword.trim() ? '검색 결과가 없습니다.' : '등록된 임직원이 없습니다.';
+  const listMessage = isLoading
+    ? '임직원 목록을 불러오는 중입니다.'
+    : loadError && employees.length === 0
+      ? '임직원 목록을 불러오지 못했습니다.'
+      : filteredEmployees.length ? null : emptyMessage;
 
   useEffect(() => {
     const controller = new AbortController();
 
-    axios.get<Employee[]>(employeesUrl, { signal: controller.signal }).then(({ data }) => setEmployees(data)).catch((error) => {
-      if (!axios.isCancel(error)) console.error('직원 목록 조회 실패:', error);
+    axios.get<Employee[]>(employeesUrl, { signal: controller.signal }).then(({ data }) => {
+      if (!controller.signal.aborted) setEmployees(data);
+    }).catch((error) => {
+      if (!controller.signal.aborted) {
+        console.error('직원 목록 조회 실패:', error);
+        setLoadError(true);
+      }
     }).finally(() => {
       if (!controller.signal.aborted) setIsLoading(false);
     });
@@ -211,15 +224,14 @@ export default function HrPage() {
           <header className={dataViewStyles.panelHeader}>
             <h2>임직원 목록</h2>
 
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <input type="text" placeholder='사번, 이름 또는 부서 검색...' value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} 
+            <div className={view.search}>
+              <input type="text" className={formStyles.input} aria-label="사번, 이름 또는 부서 검색" placeholder="사번, 이름 또는 부서 검색..." value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   setAppliedKeyword(searchKeyword);
                   setCurrentPage(1);
                 }
-              }}
-              style={{ width: '220px', padding: '8px 12px', border: '1px solid #dbe2ef', borderRadius: '6px', fontSize: '13px' }}/>
+              }}/>
 
               <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" onClick={() => {setAppliedKeyword(searchKeyword); setCurrentPage(1);}}>검색</button>
             </div>
@@ -240,7 +252,13 @@ export default function HrPage() {
               </thead>
 
               <tbody>
-                {paginatedEmployees.map((emp) => (
+                {listMessage ? (
+                  <tr>
+                    <td colSpan={7} className={dataViewStyles.tableMessage}>
+                      <p role="status">{listMessage}</p>
+                    </td>
+                  </tr>
+                ) : paginatedEmployees.map((emp) => (
                   <tr key={emp.id}>
                     <td>{emp.id}</td>
                     <td>
@@ -260,20 +278,11 @@ export default function HrPage() {
                 ))}
               </tbody>
             </table>
-
-            {!isLoading && filteredEmployees.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '16px' }}>
-                <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === 1} onClick={() => setCurrentPage(safeCurrentPage - 1)}>이전</button>
-
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                  <button key={page} type='button' className={buttonStyles.button} data-variant={safeCurrentPage === page ? undefined : 'outline'} data-size="small" onClick={() => setCurrentPage(page)}>{page}</button>
-                ))}
-
-                <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" disabled={safeCurrentPage === totalPages} onClick={() => setCurrentPage(safeCurrentPage + 1)}>다음</button>
-              </div>
-            )}
-
           </div>
+
+          {!listMessage && (
+            <Pagination currentPage={safeCurrentPage} totalPages={totalPages} onPageChange={setCurrentPage} label="임직원 목록 페이지" />
+          )}
         </section>
       </div>
     </Layout>
