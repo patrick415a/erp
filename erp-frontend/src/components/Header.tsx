@@ -105,11 +105,11 @@ export function Header() {
         </nav>
         <div className={styles.userSection}>
           <button className={styles.avatar} onClick={handleMyPage}>
-            {userName ? userName.charAt(0) : '관'}
+            {userName ? userName.charAt(0) : '?'}
           </button>
 
           <button className={styles.userName} onClick={handleMyPage}>
-            {userName ? `${userName}님` : '관리자님'}
+            {userName ? `${userName}님` : '사용자 정보 확인 중'}
           </button>
           <button
             type="button"
