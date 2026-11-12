@@ -52,6 +52,18 @@ interface Employee {
 const statusLabels = { planning: '생산 대기', progress: '생산 중', completed: '생산 완료' };
 
 const ordersPerPage = 5;
+const productionOrderId = /^PRD-\d{4}-\d+$/;
+const orderIdCollator = new Intl.Collator('en', { numeric: true });
+
+function compareRecentOrders(left: Order, right: Order) {
+  const leftHasSequence = productionOrderId.test(left.id);
+  const rightHasSequence = productionOrderId.test(right.id);
+
+  if (leftHasSequence !== rightHasSequence) return leftHasSequence ? -1 : 1;
+  if (!leftHasSequence) return 0;
+  return orderIdCollator.compare(right.id, left.id);
+}
+
 const chartTick = { fill: 'var(--chart-label)', fontSize: 12 };
 const inventoryStatuses = [
   { status: 'normal', name: '정상', color: 'var(--stock-normal)' },
@@ -111,7 +123,7 @@ export default function DashboardPage() {
       try {
         const response = await axios.get<Order[]>('http://127.0.0.1:8080/api/production/orders');
 
-        setOrders(response.data);
+        setOrders([...response.data].sort(compareRecentOrders));
       } catch (error) {
         console.error('생산 오더 조회 실패: ', error);
         setIsError(true);
