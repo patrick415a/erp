@@ -41,6 +41,11 @@ public class Member {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", length = 30)
+    @Builder.Default
+    private MemberRole role = MemberRole.EMPLOYEE;
+
     @Column(nullable = false)
     private String password; // Spring Security BCrypt 등으로 암호화되어 저장됨
 
@@ -84,4 +89,14 @@ public class Member {
         if (address != null) this.address = address;
         if (detailAddress != null) this.detailAddress = detailAddress;
     }
+
+    //사용자 권한 변경
+    public void changeRole(MemberRole newRole) {
+        if (newRole == null) {
+            throw new IllegalArgumentException("변경할 권한을 선택해 주세요.");
+        }
+
+        this.role = newRole;
+    }
+
 }
