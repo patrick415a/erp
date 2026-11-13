@@ -7,6 +7,16 @@
   color-scheme: light;
 }
 
+:root[data-theme='dark'] {
+  @include tokens.dark-theme;
+}
+
+:root[data-theme-switching] {
+  &, *, *::before, *::after {
+    transition: none !important;
+  }
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -75,7 +85,7 @@ input[type='checkbox'], input[type='radio'] {
 }
 
 ::selection {
-  background: #dfe7ff;
+  background: var(--selection);
 }
 
 @media (prefers-reduced-motion: reduce) {

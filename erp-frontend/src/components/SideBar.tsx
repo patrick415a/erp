@@ -12,7 +12,7 @@ const sections: { title: string; links: { href: string; label: string; icon: Ico
       { href: '/dashboard', label: '대시보드', icon: 'grid' },
       { href: '/dashboard/production', label: '생산관리', icon: 'production' },
       { href: '/dashboard/inventory', label: '재고관리', icon: 'box' },
-      { href: '/dashboard/hr', label: '인사관리', icon: 'users' },
+      { href: '/dashboard/hr', label: '인사관리', icon: 'employeeCard' },
       { href: '/dashboard/settings', label: '기준정보', icon: 'settings' },
     ],
   },
@@ -20,7 +20,7 @@ const sections: { title: string; links: { href: string; label: string; icon: Ico
     title: '시스템 관리',
     links: [
       { href: '/dashboard/calendar', label: '일정관리', icon: 'calendar' },
-      { href: '/users', label: '사용자 권한 관리', icon: 'users' },
+      { href: '/users', label: '사용자 권한 관리', icon: 'userGear' },
       { href: '/settings', label: '시스템 환경설정', icon: 'settings' },
     ],
   },

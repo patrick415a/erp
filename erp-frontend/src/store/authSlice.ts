@@ -1,7 +1,6 @@
 // 먼저 로그인한 토큰과 사용자 상태 관리 슬라이스
-import axios from 'axios';
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { memberApiUrl } from '@/app/api/members';
+import { erpClient } from '@/app/api/erpClient';
 
 interface UserInfo {
   firstName: string | null;
@@ -15,6 +14,7 @@ interface AuthState {
   isAuthenticate: boolean; // 로그인 여부를 나타냄
   userInfo: UserInfo | null;
   userInfoRequestId: string | null;
+  sessionExpired: boolean;
 }
 
 /*
@@ -28,12 +28,23 @@ const initialState: AuthState = {
   isAuthenticate: typeof window !== 'undefined' ? !!localStorage.getItem("token") : false,
   userInfo: null,
   userInfoRequestId: null,
+  sessionExpired: false,
 };
+
+function clearSession(state: AuthState) {
+  if (state.token && localStorage.getItem('token') === state.token) {
+    localStorage.removeItem('token');
+  }
+  state.token = null;
+  state.isAuthenticate = false;
+  state.userInfo = null;
+  state.userInfoRequestId = null;
+}
 
 export const loadUserInfo = createAsyncThunk<UserInfo, string, { state: { auth: AuthState } }>(
   'auth/loadUserInfo',
   async (token, { signal }) => {
-    const { data } = await axios.get<UserInfo>(memberApiUrl() + '/profile', {
+    const { data } = await erpClient.get<UserInfo>('/api/members/profile', {
       headers: { Authorization: `Bearer ${token}` },
       signal,
       timeout: 5000,
@@ -59,14 +70,20 @@ export const authSlice = createSlice({
       state.isAuthenticate = true;
       state.userInfo = action.payload.userInfo ?? null;
       state.userInfoRequestId = null;
+      state.sessionExpired = false;
       localStorage.setItem("token", action.payload.token);
     },
     setLogout: (state) => {
-      state.token = null;
-      state.isAuthenticate = false;
-      state.userInfo = null;
-      state.userInfoRequestId = null;
-      localStorage.removeItem("token");
+      clearSession(state);
+      state.sessionExpired = false;
+    },
+    expireSession: (state, action: PayloadAction<string>) => {
+      if (state.token !== action.payload) return;
+      clearSession(state);
+      state.sessionExpired = true;
+    },
+    acknowledgeSessionExpiry: (state) => {
+      state.sessionExpired = false;
     },
     // 로그인 객체
   },
@@ -87,7 +104,7 @@ export const authSlice = createSlice({
 });
 
 // 컴포넌트에서 상태 변경을 위해 dispatch(상태 변경 요청 전송/발송 함수) 액션 생성 함수들을 만들어서 내보냄
-export const { setLogin, setLogout } = authSlice.actions;
+export const { setLogin, setLogout, expireSession, acknowledgeSessionExpiry } = authSlice.actions;
 
 // 스토어(store.ts)등록을 위해 리듀서 함수를 기본값으로 내보냄
 export default authSlice.reducer;

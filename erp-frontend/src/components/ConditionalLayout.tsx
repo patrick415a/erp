@@ -1,19 +1,41 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { menuPermissions } from '@/app/api/access';
 import { useAccess } from '@/store/access';
 import buttons from '@/assets/common/Button.module.scss';
 import dataView from '@/assets/common/DataView.module.scss';
 import { Layout } from './Layout';
 import { ScheduleReminder } from './calendar/ScheduleReminder';
+import AlertModal from './modal/AlertModal';
+import { acknowledgeSessionExpiry } from '@/store/authSlice';
+import { useSessionExpiry } from '@/store/useSessionExpiry';
+import type { RootState } from '@/store/store';
 
 export default function ConditionalLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const sessionExpired = useSelector((state: RootState) => state.auth.sessionExpired);
+  useSessionExpiry();
   const { can, status, refreshAccess } = useAccess();
   const permission = menuPermissions[pathname];
+
+  if (sessionExpired) {
+    return (
+      <AlertModal
+        isOpen
+        message={'로그아웃되었습니다.\n다시 로그인해 주세요.'}
+        onClose={() => {
+          dispatch(acknowledgeSessionExpiry());
+          router.replace('/');
+        }}
+      />
+    );
+  }
 
   if (permission && !can(permission)) {
     const message = {

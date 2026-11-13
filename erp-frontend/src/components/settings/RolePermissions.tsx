@@ -130,7 +130,7 @@ export function RolePermissions() {
 
                     return (
                       <div className={styles.grantRow} key={label}>
-                        <dt><Icon name={icon} size={15} />{label}</dt>
+                        <dt><Icon name={icon} size={20} />{label}</dt>
                         <dd>
                           {enabled.map(([permission, action]) => (
                             <span key={permission} className={dataView.badge} data-tone={tone}>{action}</span>

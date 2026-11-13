@@ -13,6 +13,7 @@ import modalStyles from '@/assets/modal/ModalParts.module.scss';
 import settingsStyles from '@/assets/dashboard/settings/Settings.module.scss';
 import Link from 'next/link';
 import axios from 'axios';
+import { erpClient } from '@/app/api/erpClient';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
@@ -34,7 +35,7 @@ async function requestMemberProfile(signal: AbortSignal) {
   const token = localStorage.getItem('token');
   if (!token) return null;
 
-  const { data } = await axios.get('http://127.0.0.1:8080/api/members/profile', {
+  const { data } = await erpClient.get('/api/members/profile', {
     headers: { Authorization: `Bearer ${token}` },
     signal,
   });
@@ -64,7 +65,6 @@ export default function MyPageClient() {
 
   const showReloginNotice = useCallback((notice: AlertNotice = loginRequiredNotice) => {
     dispatch(setLogout());
-    delete axios.defaults.headers.common['Authorization'];
     setAccountNotice({ ...notice, returnToLogin: true });
   }, [dispatch]);
 
@@ -87,7 +87,6 @@ export default function MyPageClient() {
     }).catch((error) => {
       if (controller.signal.aborted) return;
       if (isUnauthorized(error)) {
-        showReloginNotice();
         return;
       }
       console.error('회원정보 조회 실패: ', error);
@@ -108,14 +107,13 @@ export default function MyPageClient() {
     }
 
     try {
-      await axios.put('http://127.0.0.1:8080/api/members/profile', formData, {
+      await erpClient.put('/api/members/profile', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       alert('회원정보가 성공적으로 수정되었습니다.');
     } catch (error) {
       if (isUnauthorized(error)) {
-        showReloginNotice();
         return;
       }
       console.error('회원정보 수정 실패: ', error);
@@ -140,8 +138,8 @@ export default function MyPageClient() {
 
     setIsChangingPassword(true);
     try {
-      await axios.post(
-        'http://127.0.0.1:8080/api/members/change-password',
+      await erpClient.post(
+        '/api/members/change-password',
         { oldPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } }, // JWT 토큰을 헤더에 담아 전송
       );
@@ -154,7 +152,6 @@ export default function MyPageClient() {
       });
     } catch (error) {
       if (isUnauthorized(error)) {
-        showReloginNotice();
         return;
       }
       const response = axios.isAxiosError(error) ? error.response?.data : undefined;
@@ -177,7 +174,7 @@ export default function MyPageClient() {
     e.preventDefault();
     if (window.daum && window.daum.Postcode) {
       new window.daum.Postcode({
-        oncomplete: function (data: any) {
+        oncomplete: function (data) {
           // 도로명 주소의 노출 규칙에 따라 주소를 조합
           let fullAddress = data.address;
           let extraAddress = '';

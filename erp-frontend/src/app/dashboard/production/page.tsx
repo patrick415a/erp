@@ -5,6 +5,7 @@ import buttonStyles from '@/assets/common/Button.module.scss';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { StatusSearch } from '@/components/ui/StatusSearch';
+import { productionStatuses } from '@/app/types/workStatuses';
 
 import { Layout } from '@/components/Layout';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
@@ -19,16 +20,10 @@ interface ProductionOrder {
   id: string;
   productName: string;
   quantity: number;
-  status: 'planning' | 'progress' | 'completed';
+  status: keyof typeof productionStatuses;
   progress: number;
   dueDate: string;
 }
-
-const productionStatuses = {
-  progress: { label: '생산중', tone: 'primary' },
-  planning: { label: '생산대기', tone: 'secondary' },
-  completed: { label: '생산완료', tone: 'success' },
-};
 
 async function requestProductionOrders(signal?: AbortSignal) {
   const { data } = await erpClient.get<ProductionOrder[]>('/api/production/orders', { signal });

@@ -8,6 +8,7 @@ import styles from '@/assets/dashboard/Dashboard.module.scss';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { erpClient } from '@/app/api/erpClient';
+import { employeeStatuses, productionStatuses } from '@/app/types/workStatuses';
 import { useAccess } from '@/store/access';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
@@ -21,6 +22,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  Text,
+  type BaseTickContentProps,
 } from 'recharts';
 
 interface Order {
@@ -29,7 +32,7 @@ interface Order {
   quantity: number;
   dueDate: string;
   progress: number;
-  status: 'planning' | 'progress' | 'completed';
+  status: keyof typeof productionStatuses;
 }
 
 interface InventoryItem {
@@ -46,7 +49,7 @@ interface Employee {
   name: string;
   department: string;
   role: string;
-  status: 'active' | 'leave' | 'resigned';
+  status: keyof typeof employeeStatuses;
   joinDate: string;
 }
 
@@ -66,6 +69,27 @@ function compareRecentOrders(left: Order, right: Order) {
 }
 
 const chartTick = { fill: 'var(--chart-label)', fontSize: 12 };
+const statusColors = {
+  primary: 'var(--primary-soft-text)',
+  secondary: 'var(--text-subtle)',
+  success: 'var(--success-text)',
+  warning: 'var(--warning-text)',
+  danger: 'var(--danger-text)',
+};
+
+function renderStatusTick(
+  { x, y, textAnchor, verticalAnchor, payload, className }: BaseTickContentProps,
+  entries: { name: string; color: string }[],
+) {
+  return (
+    <Text x={x} y={y} textAnchor={textAnchor} verticalAnchor={verticalAnchor} className={className}
+      fontSize={chartTick.fontSize} fill={entries.find(({ name }) => name === payload.value)?.color ?? chartTick.fill}>
+      {payload.value}
+    </Text>
+  );
+}
+
+const tooltipStyle = { backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' };
 const inventoryStatuses = [
   { status: 'normal', name: '정상', color: 'var(--stock-normal)' },
   { status: 'low', name: '재고 부족', color: 'var(--stock-low)' },
@@ -204,27 +228,27 @@ export default function DashboardPage() {
       loading: inventoryLoading, error: inventoryError, visible: showInventory,
     },
     {
-      href: '/dashboard/hr', area: 'hr', icon: 'users', label: '등록 임직원',
+      href: '/dashboard/hr', area: 'hr', icon: 'employeeCard', label: '등록 임직원',
       value: employees.length, unit: '명', loading: employeeLoading, error: employeeError, visible: showHr,
     },
   ] as const;
 
-  const productionChartData = [
-    { name: '대기', count: orders.filter((order) => order.status === 'planning').length },
-    { name: '진행', count: orders.filter((order) => order.status === 'progress').length },
-    { name: '완료', count: completedOrders },
-  ];
+  const productionChartData = (['planning', 'progress', 'completed'] as const).map((status) => ({
+    name: productionStatuses[status].chartLabel,
+    count: orders.filter((order) => order.status === status).length,
+    color: statusColors[productionStatuses[status].tone],
+  }));
 
   const inventoryChartData = inventoryStatuses.map((entry) => ({
     ...entry,
     value: items.filter((item) => item.status === entry.status).length,
   }));
 
-  const employeeChartData = [
-    { name: '재직', count: employees.filter((employee) => employee.status === 'active').length },
-    { name: '휴직', count: employees.filter((employee) => employee.status === 'leave').length },
-    { name: '퇴사', count: employees.filter((employee) => employee.status === 'resigned').length },
-  ];
+  const employeeChartData = Object.entries(employeeStatuses).map(([status, { chartLabel, tone }]) => ({
+    name: chartLabel,
+    count: employees.filter((employee) => employee.status === status).length,
+    color: statusColors[tone],
+  }));
 
   const orderMessage = getDataMessage('생산 오더', isLoading, isError, orders.length, '등록된 생산 오더가 없습니다.');
   const inventoryMessage = getDataMessage('재고', inventoryLoading, inventoryError, items.length, '등록된 재고가 없습니다.');
@@ -264,10 +288,13 @@ export default function DashboardPage() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={productionChartData}>
               <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={chartTick} tickMargin={8} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false}
+                tick={(tick) => renderStatusTick(tick, productionChartData)} tickMargin={8} />
               <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={chartTick} width={36} />
-              <Tooltip cursor={{ fill: 'var(--background)' }} />
-              <Bar dataKey="count" name="오더 수" fill="var(--chart-blue)" maxBarSize={36} radius={[4, 4, 0, 0]} />
+              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text)' }} cursor={{ fill: 'var(--background)' }} />
+              <Bar dataKey="count" name="오더 수" fill="var(--text)" maxBarSize={36} radius={[4, 4, 0, 0]}>
+                {productionChartData.map(({ name, color }) => <Cell key={name} fill={color} />)}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartPanel>}
@@ -292,7 +319,7 @@ export default function DashboardPage() {
                       <Cell key={entry.status} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'var(--surface)' }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
               <div className={styles.donutTotal}>
@@ -316,9 +343,12 @@ export default function DashboardPage() {
             <BarChart data={employeeChartData} layout="vertical" margin={{ right: 12 }}>
               <CartesianGrid horizontal={false} stroke="var(--chart-grid)" />
               <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={chartTick} tickMargin={8} />
-              <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={chartTick} width={36} />
-              <Tooltip cursor={{ fill: 'var(--background)' }} />
-              <Bar dataKey="count" name="임직원 수" fill="var(--chart-teal)" maxBarSize={22} radius={[0, 4, 4, 0]} />
+              <YAxis dataKey="name" type="category" axisLine={false} tickLine={false}
+                tick={(tick) => renderStatusTick(tick, employeeChartData)} width={36} />
+              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text)' }} cursor={{ fill: 'var(--background)' }} />
+              <Bar dataKey="count" name="임직원 수" fill="var(--text)" maxBarSize={22} radius={[0, 4, 4, 0]}>
+                {employeeChartData.map(({ name, color }) => <Cell key={name} fill={color} />)}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartPanel>}
@@ -363,7 +393,7 @@ export default function DashboardPage() {
                   <td>{order.productName}</td>
                   <td className={view.number}>{order.quantity.toLocaleString()}개</td>
                   <td>
-                    <span className={dataView.badge} data-tone={order.status === 'completed' ? 'success' : order.status === 'progress' ? 'primary' : 'secondary'}>
+                    <span className={dataView.badge} data-tone={productionStatuses[order.status]?.tone ?? 'secondary'}>
                       {statusLabels[order.status]}
                     </span>
                   </td>

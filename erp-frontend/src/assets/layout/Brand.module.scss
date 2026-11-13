@@ -1,36 +1,29 @@
 .brand {
   display: flex;
   align-items: center;
+  min-inline-size: 0;
+  max-inline-size: calc(100vw - 48px);
   gap: 11px;
-  color: #16223b;
+  color: var(--text);
   font-size: 19px;
   font-weight: 750;
   letter-spacing: -.7px;
   white-space: nowrap;
-  cursor: pointer;
 }
 
 .mark {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  color: white;
-  background: linear-gradient(145deg, #4979ff, #2352d6);
-  box-shadow: inset 0 0 0 1px #ffffff1f;
-  font-size: 23px;
-  font-weight: 750;
-  letter-spacing: -1px;
+  flex: none;
+  object-fit: contain;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .compact {
+  min-inline-size: 0;
+  max-inline-size: min(240px, 58vw);
   font-size: 16px;
   gap: 10px;
-  .mark {
-    width: 31px;
-    height: 31px;
-    font-size: 20px;
-    border-radius: 8px;
-  }
 }

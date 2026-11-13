@@ -141,7 +141,7 @@ export default function ScheduleModal({
             className={formControlsStyles.selectTrigger}
           >
             {formStatus}
-            <Icon name={isSelectOpen ? 'up' : 'down'} size={16} style={{ color: '#94a3b8' }} />
+            <Icon name={isSelectOpen ? 'up' : 'down'} size={16} style={{ color: 'var(--text-subtle)' }} />
           </div>
           {isSelectOpen && (
             <ul className={formControlsStyles.selectList}>

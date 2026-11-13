@@ -4,9 +4,10 @@ import authLayoutStyles from '@/assets/auth/AuthLayout.module.scss';
 import formControlsStyles from '@/assets/common/FormControls.module.scss';
 import buttonStyles from '@/assets/common/Button.module.scss';
 import { Brand } from '@/components/Brand';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 import { useDispatch } from 'react-redux';
-import type { AppDispatch } from '@/store/store';
+import { store, type AppDispatch } from '@/store/store';
 import { loadUserInfo, setLogin } from '@/store/authSlice';
 import { memberApiUrl } from '@/app/api/members';
 import { firstAvailableMenu } from '@/app/api/access';
@@ -49,12 +50,11 @@ export default function Home() {
   const completeLogin = useCallback(
     async (token: string, signal?: AbortSignal) => {
       dispatch(setLogin({ token }));
-      axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
       const [, access] = await Promise.all([
         dispatch(loadUserInfo(token)),
         requestCurrentAccess(token, signal).catch(() => null),
       ]);
-      if (signal?.aborted) return;
+      if (signal?.aborted || store.getState().auth.token !== token) return;
       setNotice({ message: '로그인되었습니다.', status: 'success' });
       setNextRoute(access ? firstAvailableMenu(access) : '/dashboard');
     },
@@ -175,11 +175,14 @@ export default function Home() {
     <>
       <main className={authLayoutStyles.page}>
         <div className={authLayoutStyles.brand}>
-          <Brand />
+          <Brand href={null} />
         </div>
         <section className={authLayoutStyles.card}>
           <header className={authLayoutStyles.heading}>
-            <h1>로그인</h1>
+            <div className={authLayoutStyles.headingRow}>
+              <h1>로그인</h1>
+              <ThemeToggle />
+            </div>
             <p>사내 계정으로 접속하여 업무를 시작하세요.</p>
           </header>
 

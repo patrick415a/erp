@@ -3,7 +3,7 @@
 import axios from 'axios';
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
-import { erpApiUrl } from '@/app/api/baseUrl';
+import { erpClient } from '@/app/api/erpClient';
 import { useAccess } from '@/store/access';
 import AlertModal from '@/components/modal/AlertModal';
 import buttons from '@/assets/common/Button.module.scss';
@@ -27,7 +27,7 @@ async function requestCompanyInfo(signal: AbortSignal) {
   const token = localStorage.getItem('token');
   if (!token) return null;
 
-  const { data } = await axios.get<CompanyInfo>(erpApiUrl(companyPath), {
+  const { data } = await erpClient.get<CompanyInfo>(companyPath, {
     headers: { Authorization: `Bearer ${token}` },
     signal,
   });
@@ -81,7 +81,7 @@ export function CompanyInfoForm() {
     setIsSaving(true);
     setNotice(null);
     try {
-      const { data } = await axios.put<CompanyInfo>(erpApiUrl(companyPath), company, {
+      const { data } = await erpClient.put<CompanyInfo>(companyPath, company, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCompany(data);

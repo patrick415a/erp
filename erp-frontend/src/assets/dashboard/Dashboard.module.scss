@@ -18,8 +18,8 @@
   transition: border-color .15s, background .15s;
 
   &:hover {
-    border-color: #b9caf3;
-    background: #fbfcff;
+    border-color: var(--border-hover);
+    background: var(--surface-hover);
   }
 }
 
@@ -30,17 +30,17 @@
   block-size: 40px;
   border-radius: 8px;
   color: var(--primary);
-  background: #edf2fe;
+  background: var(--surface-selected);
 }
 
 .metricCard[data-area='inventory'] .metricIcon {
-  color: #8a5a18;
-  background: #fff4e2;
+  color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .metricCard[data-area='hr'] .metricIcon {
-  color: #287768;
-  background: #eaf6f2;
+  color: var(--success);
+  background: var(--success-soft);
 }
 
 .metricLabel {
@@ -104,11 +104,9 @@
 }
 
 .chartBody {
-  --chart-blue: var(--primary);
-  --chart-teal: #368779;
-  --stock-normal: #368779;
-  --stock-low: #ce872d;
-  --stock-out: #c45b63;
+  --stock-normal: var(--chart-green);
+  --stock-low: var(--chart-amber);
+  --stock-out: var(--chart-red);
   --chart-grid: var(--border);
   --chart-label: var(--muted);
 
@@ -131,15 +129,15 @@
   width: 100%;
   padding: 18px;
   color: var(--muted);
-  background: #f8faff;
+  background: var(--surface-subtle);
   border: 1px dashed var(--border);
   border-radius: 8px;
   text-align: center;
   font-size: 13px;
 
   &[data-error] .stateIcon {
-    color: #a74249;
-    background: #fdf0f0;
+    color: var(--danger);
+    background: var(--danger-soft);
   }
 }
 

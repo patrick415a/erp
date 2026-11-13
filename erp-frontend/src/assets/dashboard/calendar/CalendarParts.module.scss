@@ -62,8 +62,8 @@
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
-  color: #7d8a9f;
+  background: var(--surface);
+  color: var(--muted);
   transition: color .15s, border-color .15s, background-color .15s;
 
   &[data-today] {
@@ -72,8 +72,8 @@
 
   &:hover {
     color: var(--primary);
-    background: #f4f7ff;
-    border-color: #c4d2f5;
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
   }
 }
 
@@ -88,15 +88,15 @@
 
 .dayName {
   padding: 11px 4px;
-  background: #f9fafe;
-  color: #8894a8;
+  background: var(--surface-subtle);
+  color: var(--text-subtle);
   text-align: center;
   font-size: 13px;
   line-height: 18px;
   font-weight: 500;
 
-  &:first-child { color: #cb7980; }
-  &:nth-child(7) { color: #6e8fc9; }
+  &:first-child { color: var(--danger-text); }
+  &:nth-child(7) { color: var(--primary-soft-text); }
 }
 
 .dayCell {
@@ -107,8 +107,8 @@
   min-width: 0;
   min-height: 100px;
   padding: 10px 12px;
-  background: #fff;
-  color: #536079;
+  background: var(--surface);
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 20px;
   cursor: pointer;
@@ -123,19 +123,19 @@
     border-radius: 50%;
     font-variant-numeric: tabular-nums;
   }
-  &:hover { background: #f6f8ff; }
-  &:focus-visible { outline: 2px solid #8ca9f3; outline-offset: -2px; }
+  &:hover { background: var(--surface-hover); }
+  &:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
   &[data-empty] {
-    background: #fafbfe;
+    background: var(--surface-subtle);
     pointer-events: none;
   }
-  &[data-saturday] { color: #6b8cc5; }
-  &[data-holiday] { color: #ce737d; }
+  &[data-saturday] { color: var(--primary-soft-text); }
+  &[data-holiday] { color: var(--danger-text); }
   &[data-today] {
-    background: #f8faff;
+    background: var(--surface-hover);
     > span:first-child {
-      background: var(--primary);
-      color: #fff;
+      background: var(--primary-button);
+      color: var(--on-primary);
       font-weight: 650;
     }
   }

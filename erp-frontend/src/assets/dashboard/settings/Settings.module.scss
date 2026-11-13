@@ -53,10 +53,10 @@
     outline-offset: -2px;
   }
   &:hover {
-    background: #f5f7fb;
+    background: var(--surface-hover);
   }
   &[aria-pressed='true'] {
-    background: #edf2ff;
+    background: var(--surface-selected);
     color: var(--primary);
     font-weight: 650;
   }
@@ -135,7 +135,7 @@
 
 .grantRow {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: 142px minmax(0, 1fr);
   align-items: center;
   gap: 6px 12px;
   padding-block: 4px;
@@ -144,9 +144,14 @@
   dt {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     color: var(--muted);
     font-weight: 600;
+
+    > [aria-hidden='true'] {
+      // 아이콘을 한글 글자의 시각적 중심에 맞춥니다.
+      translate: 0 -1px;
+    }
   }
 
   dd {
@@ -198,7 +203,7 @@
 
 .roleNotice {
   margin-top: 14px;
-  color: #187257;
+  color: var(--success);
 }
 
 .formGroup {
@@ -209,28 +214,28 @@
   label {
     font-size: 13px;
     font-weight: 500;
-    color: #7d89a0;
+    color: var(--muted);
   }
   input {
     width: 100%;
     min-height: 42px;
     padding: 11px 13px;
     font-size: 13px;
-    color: #53617b;
-    border: 1px solid #dfe5ef;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-input);
     border-radius: 6px;
-    background: #fff;
+    background: var(--surface);
     &:focus {
       outline: none;
-      border-color: #7394ef;
-      box-shadow: 0 0 0 3px #3563e910;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--focus-shadow);
     }
   }
 }
 
 .formError {
   margin-top: 16px;
-  color: #b14049;
+  color: var(--danger);
 
   a {
     text-decoration: underline;
@@ -244,8 +249,8 @@
   padding: 9px 22px;
   border: 0;
   border-radius: 6px;
-  color: white;
-  background: var(--primary);
+  color: var(--on-primary);
+  background: var(--primary-button);
   font-size: 13px;
   font-weight: 600;
   &:hover {

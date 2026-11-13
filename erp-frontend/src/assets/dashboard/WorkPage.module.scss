@@ -33,11 +33,11 @@
 }
 
 .muted {
-  color: #909aaf;
+  color: var(--text-subtle);
 }
 
 .itemName {
-  color: #34425b;
+  color: var(--heading);
   font-weight: 600;
 }
 
@@ -64,7 +64,7 @@
 }
 
 .progressBar {
-  --progress-fill: #6d8fec;
+  --progress-fill: var(--primary-soft-text);
   appearance: none;
   flex: 1;
   min-width: 0;
@@ -72,10 +72,10 @@
   height: 5px;
   border: 0;
   border-radius: 8px;
-  background: #eef1f7;
+  background: var(--surface-muted);
 
   &[data-completed] {
-    --progress-fill: #6ea792;
+    --progress-fill: var(--chart-green);
   }
 
   &::-webkit-progress-bar {
@@ -95,7 +95,7 @@
 
 .accountForm {
   max-width: 620px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 6px 28px 28px;

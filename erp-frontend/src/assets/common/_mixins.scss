@@ -6,7 +6,7 @@
 }
 
 @mixin focus-ring {
-  outline: 3px solid rgba(53, 99, 233, .2);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 

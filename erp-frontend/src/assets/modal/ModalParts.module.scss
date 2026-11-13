@@ -29,7 +29,7 @@
   justify-content: center;
   align-items: center;
   padding: 20px;
-  background: #18284355;
+  background: var(--overlay);
   backdrop-filter: blur(3px);
 }
 
@@ -40,7 +40,7 @@
   max-height: calc(100svh - 40px);
   overflow-y: auto;
   padding: 27px;
-  box-shadow: 0 20px 70px #1c2a4b24;
+  box-shadow: 0 20px 70px var(--shadow-color);
   animation: enter .3s ease both;
   &[data-closing] {
     animation: leave .3s ease both;
@@ -56,18 +56,18 @@
 }
 
 .alertIcon {
+  align-self: center;
   display: grid;
   place-items: center;
-  align-self: center;
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  color: #187257;
-  background: #eaf6f0;
+  background: var(--success-soft);
+  color: var(--success);
 
   &[data-status='error'] {
-    color: #bb4545;
-    background: #fff1f0;
+    background: var(--danger-soft);
+    color: var(--danger);
   }
 }
 
@@ -142,15 +142,15 @@
   padding: 3px 9px;
   border-radius: 4px;
   font-size: 13px;
-  background: #fff6df;
-  color: #b48c38;
+  background: var(--warning-soft);
+  color: var(--warning-text);
   &[data-status='진행'] {
     color: var(--primary);
-    background: #edf2ff;
+    background: var(--surface-selected);
   }
   &[data-status='완료'] {
-    color: #4d927f;
-    background: #eaf6f0;
+    color: var(--success-text);
+    background: var(--success-soft);
   }
 }
 

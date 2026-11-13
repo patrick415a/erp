@@ -1,5 +1,4 @@
 'use client';
-import axios from 'axios';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -10,6 +9,7 @@ import { Brand } from './Brand';
 import styles from '@/assets/layout/Header.module.scss';
 import buttons from '@/assets/common/Button.module.scss';
 import { Icon } from './ui/Icon';
+import { ThemeToggle } from './ui/ThemeToggle';
 import AlertModal from '@/components/modal/AlertModal';
 import { firstAvailableMenu, menuPermissions } from '@/app/api/access';
 import { useAccess } from '@/store/access';
@@ -48,7 +48,6 @@ export function Header() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     dispatch(setLogout());
-    delete axios.defaults.headers.common['Authorization'];
     router.push('/');
   };
 
@@ -95,6 +94,7 @@ export function Header() {
             <span>로그아웃</span>
           </button>
         </div>
+        <ThemeToggle className={styles.themeToggle} />
         <button
           type="button"
           className={styles.mobileToggle}

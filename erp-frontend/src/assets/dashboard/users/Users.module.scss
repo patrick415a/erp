@@ -28,7 +28,7 @@ $role-padding-start: 10px;
   @include mixins.select-arrow;
 
   &:hover:enabled {
-    border-color: #b9cafa;
+    border-color: var(--border-hover);
   }
 
   &:disabled {
@@ -39,7 +39,7 @@ $role-padding-start: 10px;
 
 .toast {
   @include mixins.surface;
-  --notice-color: #187257;
+  --notice-color: var(--success);
   position: fixed;
   inset: 20px 20px auto auto;
   z-index: 1100;
@@ -52,14 +52,14 @@ $role-padding-start: 10px;
   padding: 9px 12px;
   border-inline-start: 4px solid var(--notice-color);
   color: var(--text);
-  box-shadow: 0 12px 32px #1c2a4b24;
+  box-shadow: 0 12px 32px var(--shadow-color);
   font-size: 13px;
   line-height: 1.6;
   text-align: start;
   animation: enter .2s ease both;
 
   &[data-status='error'] {
-    --notice-color: #bb4545;
+    --notice-color: var(--danger);
   }
 
   > :first-child {

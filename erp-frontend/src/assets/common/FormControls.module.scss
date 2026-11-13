@@ -9,7 +9,7 @@
 
 .label {
   display: block;
-  color: #34415a;
+  color: var(--heading);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.6;
@@ -26,23 +26,23 @@
   min-height: 44px;
   padding: 11px 13px;
   color: var(--text);
-  background: #fff;
-  border: 1px solid #dfe5ef;
+  background: var(--surface);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   font-size: 13px;
   line-height: 1.5;
   transition: border-color .15s, box-shadow .15s;
   &::placeholder {
-    color: #a0aabd;
+    color: var(--text-placeholder);
   }
   &:focus {
-    border-color: #7394ef;
+    border-color: var(--border-focus);
     outline: none;
-    box-shadow: 0 0 0 3px #3563e910;
+    box-shadow: 0 0 0 3px var(--focus-shadow);
   }
   &[readonly] {
-    background: #f6f8fc;
-    color: #78849a;
+    background: var(--surface-muted);
+    color: var(--text-subtle);
   }
 }
 
@@ -60,7 +60,7 @@ select.input {
   align-items: center;
   gap: 7px;
   font-size: 13px;
-  color: #748098;
+  color: var(--muted);
   cursor: pointer;
 }
 
@@ -73,23 +73,23 @@ select.input {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
-  color: #6f7d94;
+  background: var(--surface);
+  color: var(--text-secondary);
   transition: border-color .15s, background .15s, color .15s;
 
   &:hover {
-    border-color: #b9cafa;
-    background: #f8faff;
+    border-color: var(--border-hover);
+    background: var(--surface-hover);
   }
 
   &:has(input:checked) {
     border-color: var(--primary);
-    background: #f0f4ff;
+    background: var(--surface-selected);
     color: var(--primary);
   }
 
   &:has(input:focus-visible) {
-    outline: 3px solid #3563e926;
+    outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
   }
 
@@ -127,7 +127,7 @@ select.input {
   padding: 10px 13px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .selectList {
@@ -139,10 +139,10 @@ select.input {
   margin: 4px 0 0;
   padding: 4px;
   list-style: none;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
-  box-shadow: 0 8px 20px #16264b12;
+  box-shadow: 0 8px 20px var(--shadow-color);
 }
 
 .selectItem {
@@ -151,6 +151,6 @@ select.input {
   cursor: pointer;
   &[data-selected], &:hover {
     color: var(--primary);
-    background: #edf2ff;
+    background: var(--surface-selected);
   }
 }

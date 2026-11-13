@@ -24,7 +24,8 @@ public enum Permission {
     CALENDAR_DELETE(CALENDAR_VIEW),
     USERS_VIEW,
     USERS_UPDATE(USERS_VIEW),
-    SYSTEM_SETTINGS_VIEW;
+    SYSTEM_SETTINGS_VIEW,
+    SYSTEM_SETTINGS_UPDATE(SYSTEM_SETTINGS_VIEW);
 
     private final Permission prerequisite;
 

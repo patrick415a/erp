@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   padding: 54px 24px 28px;
-  background: radial-gradient(ellipse at 50% 35%, #eaf0fc66, transparent 65%), #f6f8fc;
+  background: radial-gradient(ellipse at 50% 35%, var(--login-glow), transparent 65%), var(--login-background);
 }
 
 .brand {
@@ -19,8 +19,8 @@
   width: 100%;
   max-width: 460px;
   padding: 36px 38px 28px;
-  box-shadow: 0 6px 32px #20365c05;
-  border-color: #e2e8f3;
+  box-shadow: 0 6px 32px var(--shadow-color);
+  border-color: var(--border);
 }
 
 .heading {
@@ -34,13 +34,20 @@
   p {
     margin-top: 7px;
     font-size: 13px;
-    color: #8591a8;
+    color: var(--text-subtle);
   }
+}
+
+.headingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .copyright {
   margin-top: 36px;
-  color: #97a2b6;
+  color: var(--text-subtle);
   font-size: 13px;
   text-align: center;
 }

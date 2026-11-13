@@ -147,7 +147,6 @@ export default function Member() {
             token,
             userInfo: { firstName: formData.firstName, lastName: formData.lastName, email: formData.email },
           }));
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           const access = await requestCurrentAccess(token).catch(() => null);
           setNextRoute(access ? firstAvailableMenu(access) : '/dashboard');
         }else {

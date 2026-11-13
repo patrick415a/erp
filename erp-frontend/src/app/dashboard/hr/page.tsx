@@ -9,6 +9,7 @@ import ModalLayout from '@/components/modal/ModalLayout';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { StatusSearch } from '@/components/ui/StatusSearch';
+import { employeeStatuses } from '@/app/types/workStatuses';
 import { Temporal } from '@js-temporal/polyfill';
 import { erpClient } from '@/app/api/erpClient';
 import { useAccess } from '@/store/access';
@@ -21,18 +22,13 @@ interface Employee {
   name: string;
   department: string;
   role: string;
-  status: 'active' | 'leave' | 'resigned';
+  status: keyof typeof employeeStatuses;
   joinDate: string;
 }
 
 type EmployeeDialog = { mode: 'create' } | { mode: 'edit' | 'delete'; employee: Employee };
 
 const employeesUrl = '/api/hr/employees';
-const employeeStatuses = {
-  active: { label: '재직중', tone: 'success' },
-  leave: { label: '휴직', tone: 'warning' },
-  resigned: { label: '퇴사', tone: 'danger' },
-};
 const dialogActions = { create: '등록', edit: '수정', delete: '삭제' };
 const dialogPermissions = { create: 'HR_CREATE', edit: 'HR_UPDATE', delete: 'HR_DELETE' } as const;
 const employeeFields = [
@@ -192,7 +188,7 @@ export default function HrPage() {
             <span className={dataViewStyles.statLabel}>총 임직원 수</span>
             <strong className={dataViewStyles.statValue}>{employees.length + '명'}</strong>
             <span className={dataViewStyles.statDecoration}>
-              <Icon name="users" size={19}/>
+              <Icon name="employeeCard" size={19}/>
             </span>
           </section>
 

@@ -8,7 +8,7 @@ export const permissionGroups = [
   { label: '재고관리', icon: 'box', entries: [
     ['INVENTORY_VIEW', '조회'], ['INVENTORY_CREATE', '등록'], ['INVENTORY_UPDATE', '수정'], ['INVENTORY_DELETE', '삭제'],
   ] },
-  { label: '인사관리', icon: 'users', entries: [
+  { label: '인사관리', icon: 'employeeCard', entries: [
     ['HR_VIEW', '조회'], ['HR_CREATE', '등록'], ['HR_UPDATE', '수정'], ['HR_DELETE', '삭제'],
   ] },
   { label: '기준정보', icon: 'settings', entries: [
@@ -17,10 +17,10 @@ export const permissionGroups = [
   { label: '일정관리', icon: 'calendar', entries: [
     ['CALENDAR_VIEW', '조회'], ['CALENDAR_CREATE', '등록'], ['CALENDAR_UPDATE', '수정'], ['CALENDAR_DELETE', '삭제'],
   ] },
-  { label: '사용자 권한 관리', icon: 'users', entries: [
+  { label: '사용자 권한 관리', icon: 'userGear', entries: [
     ['USERS_VIEW', '조회'], ['USERS_UPDATE', '권한 변경'],
   ] },
-  { label: '시스템 환경설정', icon: 'settings', entries: [['SYSTEM_SETTINGS_VIEW', '조회']] },
+  { label: '시스템 환경설정', icon: 'settings', entries: [['SYSTEM_SETTINGS_VIEW', '조회'], ['SYSTEM_SETTINGS_UPDATE', '수정']] },
 ] as const;
 
 export type Permission = (typeof permissionGroups)[number]['entries'][number][0];

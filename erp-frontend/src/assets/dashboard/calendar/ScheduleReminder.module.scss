@@ -16,9 +16,9 @@
   border: 1px solid var(--border);
   border-inline-start: 4px solid var(--primary);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
-  box-shadow: 0 12px 32px #1c2a4b24;
+  box-shadow: 0 12px 32px var(--shadow-color);
   animation: enter .2s ease both;
 
   > button {

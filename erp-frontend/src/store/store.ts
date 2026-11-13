@@ -1,11 +1,25 @@
 import { configureStore } from "@reduxjs/toolkit";
-import authReducer from './authSlice'
+import axios from 'axios';
+import { erpClient } from '@/app/api/erpClient';
+import authReducer, { expireSession } from './authSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer
   }
 });
+
+if (typeof window !== 'undefined') {
+  erpClient.interceptors.response.use(undefined, (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      const authorization = error.config?.headers.get('Authorization');
+      if (typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
+        store.dispatch(expireSession(authorization.slice(7)));
+      }
+    }
+    return Promise.reject(error);
+  });
+}
 
 // typescript에서 사용할 RootState 및 AppDispatch 타입 정의
 export type RootState = ReturnType<typeof store.getState>;

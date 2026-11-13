@@ -49,7 +49,7 @@ function AlertDialog({ message, status, onClose }: Omit<AlertModalProps, 'isOpen
       >
         {status && (
           <div className={modalPartsStyles.alertIcon} data-status={status}>
-            <Icon name={status === 'success' ? 'check' : 'close'} size={32} />
+            <Icon name={status === 'success' ? 'checkMark' : 'warningTriangle'} size={32} />
           </div>
         )}
         <p id={messageId} className={modalPartsStyles.text}>{message.replaceAll('\\n', '\n')}</p>

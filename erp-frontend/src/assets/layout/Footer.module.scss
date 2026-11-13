@@ -5,11 +5,11 @@
   flex-wrap: wrap;
   gap: 12px;
   padding: 18px 30px;
-  color: #a3adbd;
+  color: var(--text-subtle);
   font-size: 13px;
   strong {
     font-weight: 500;
-    color: #8c97aa;
+    color: var(--text-subtle);
   }
   span {
     margin-left: 12px;

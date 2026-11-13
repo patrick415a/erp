@@ -4,21 +4,27 @@ import { CaretLeftIcon } from '@phosphor-icons/react/dist/ssr/CaretLeft';
 import { CaretRightIcon } from '@phosphor-icons/react/dist/ssr/CaretRight';
 import { CaretUpIcon } from '@phosphor-icons/react/dist/ssr/CaretUp';
 import { ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
+import { CheckIcon } from '@phosphor-icons/react/dist/ssr/Check';
 import { CheckCircleIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
 import { CubeIcon } from '@phosphor-icons/react/dist/ssr/Cube';
 import { EnvelopeSimpleIcon } from '@phosphor-icons/react/dist/ssr/EnvelopeSimple';
 import { GearSixIcon } from '@phosphor-icons/react/dist/ssr/GearSix';
 import { HouseIcon } from '@phosphor-icons/react/dist/ssr/House';
+import { IdentificationCardIcon } from '@phosphor-icons/react/dist/ssr/IdentificationCard';
 import { ListIcon } from '@phosphor-icons/react/dist/ssr/List';
 import { LockKeyIcon } from '@phosphor-icons/react/dist/ssr/LockKey';
+import { MoonIcon } from '@phosphor-icons/react/dist/ssr/Moon';
 import { QuestionIcon } from '@phosphor-icons/react/dist/ssr/Question';
 import { SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
 import { SlidersHorizontalIcon } from '@phosphor-icons/react/dist/ssr/SlidersHorizontal';
 import { SquaresFourIcon } from '@phosphor-icons/react/dist/ssr/SquaresFour';
 import { StackIcon } from '@phosphor-icons/react/dist/ssr/Stack';
+import { SunIcon } from '@phosphor-icons/react/dist/ssr/Sun';
+import { UserGearIcon } from '@phosphor-icons/react/dist/ssr/UserGear';
 import { UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { WalletIcon } from '@phosphor-icons/react/dist/ssr/Wallet';
 import { WarningCircleIcon } from '@phosphor-icons/react/dist/ssr/WarningCircle';
+import { WarningIcon } from '@phosphor-icons/react/dist/ssr/Warning';
 import { XIcon } from '@phosphor-icons/react/dist/ssr/X';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import type { CSSProperties } from 'react';
@@ -32,6 +38,8 @@ const icons = {
   box: CubeIcon,
   boxes: StackIcon,
   users: UsersIcon,
+  employeeCard: IdentificationCardIcon,
+  userGear: UserGearIcon,
   settings: SlidersHorizontalIcon,
   calendar: CalendarDotsIcon,
   chevron: CaretRightIcon,
@@ -43,12 +51,16 @@ const icons = {
   logout: SignOutIcon,
   help: QuestionIcon,
   lock: LockKeyIcon,
+  moon: MoonIcon,
+  sun: SunIcon,
   mail: EnvelopeSimpleIcon,
   menu: ListIcon,
   close: XIcon,
   chart: ChartBarIcon,
   check: CheckCircleIcon,
+  checkMark: CheckIcon,
   warning: WarningCircleIcon,
+  warningTriangle: WarningIcon,
   wallet: WalletIcon,
 } satisfies Record<string, PhosphorIcon>;
 
@@ -63,6 +75,10 @@ const simpleIcons = new Set<keyof typeof icons>([
   'logout',
 ]);
 
+const regularIcons = new Set<keyof typeof icons>([
+  'employeeCard', 'userGear', 'sun', 'moon', 'checkMark', 'warningTriangle',
+]);
+
 export type IconName = keyof typeof icons;
 export function Icon({
   name,
@@ -74,16 +90,17 @@ export function Icon({
   style?: CSSProperties;
 }) {
   const Symbol = icons[name];
+  const regular = regularIcons.has(name);
   return (
     <span
       aria-hidden="true"
       className={styles.icon}
       style={{ width: size, height: size, ...style }}
     >
-      {!simpleIcons.has(name) && (
+      {!regular && !simpleIcons.has(name) && (
         <Symbol size={size} weight="duotone" className={styles.tone} focusable="false" />
       )}
-      <Symbol size={size} weight="light" className={styles.line} focusable="false" />
+      <Symbol size={size} weight={regular ? 'regular' : 'light'} className={styles.line} focusable="false" />
     </span>
   );
 }

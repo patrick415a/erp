@@ -16,7 +16,7 @@
   width: tokens.$sidebar-width;
   height: calc(100svh - #{tokens.$header-height});
   flex-shrink: 0;
-  background: #fff;
+  background: var(--surface);
   border-right: 1px solid var(--border);
 }
 
@@ -43,7 +43,7 @@
   // line-height: 16px;
   margin-bottom: 22px;
   span:last-child {
-    color: #66748c;
+    color: var(--text-secondary);
   }
 }
 

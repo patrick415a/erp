@@ -39,14 +39,14 @@
   line-height: 20px;
   transition: background .15s, color .15s;
   &:hover {
-    background: #f5f7fb;
-    color: #52648b;
+    background: var(--surface-hover);
+    color: var(--text-secondary);
   }
 }
 
 .link.active {
   color: var(--primary);
-  background: #edf2fe;
+  background: var(--surface-selected);
   font-weight: 650;
 }
 
@@ -70,9 +70,9 @@
   gap: 10px;
   margin-top: auto;
   padding: 16px 12px 0;
-  border-top: 1px solid #eef1f6;
+  border-top: 1px solid var(--border-subtle);
   font-size: 13px;
-  color: #63718b;
+  color: var(--text-secondary);
 }
 
 .statusDot {
@@ -80,7 +80,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #5b9b89;
+  background: var(--chart-green);
 }
 
 .subtext {
