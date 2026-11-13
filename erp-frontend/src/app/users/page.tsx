@@ -143,9 +143,9 @@ export default function UsersPage() {
                                             }}>{roleNames[user.role]}</span>
                                         </td>
                                         <td style={{ padding: "16px 14px" }}>
-                                            <select aria-label={`${user.name} 권한 변경`} value={user.role} disabled={savingId !== null || user.role === "SYSTEM_ADMIN"}
+                                            <select aria-label={`${user.name} 권한 변경`} value={user.role} disabled={savingId !== null}
                                             onChange={(e) => changeRole(user.id, e.target.value as MemberRole)}
-                                            style={{ padding: "9px 12px", border: "1px solid #dbe2da", borderRadius: "8px", background: "#fff", cursor: savingId !== null || user.role === "SYSTEM_ADMIN" ? "not-allowed" : "pointer", opacity: user.role === "SYSTEM_ADMIN" ? 0.6 : 1 }}>
+                                            style={{ padding: "9px 12px", border: "1px solid #dbe2da", borderRadius: "8px", background: "#fff", cursor: savingId !== null || user.role === null ? "not-allowed" : "pointer", opacity: user.role === null ? 0.6 : 1 }}>
                                                 {Object.entries(roleNames).map(([value, label]) => (
                                                     <option key={value} value={value}>{label}</option>
                                                 ))}
