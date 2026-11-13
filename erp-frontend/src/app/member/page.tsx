@@ -14,6 +14,8 @@ import { useState } from 'react';
 
 import { useDispatch } from 'react-redux';
 import { setLogin } from '@/store/authSlice';
+import { firstAvailableMenu } from '@/app/api/access';
+import { requestCurrentAccess } from '@/app/api/erpClient';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 
 const handleGoogleLogin = () => {
@@ -40,8 +42,17 @@ interface FormData {
 
 declare global {
   interface Window {
-    daum: any;
+    daum?: {
+      Postcode: new (options: { oncomplete: (data: PostcodeAddress) => void }) => { open: () => void };
+    };
   }
+}
+
+interface PostcodeAddress {
+  address: string;
+  addressType: string;
+  bname: string;
+  buildingName: string;
 }
 
 export default function Member() {
@@ -88,7 +99,7 @@ export default function Member() {
     e.preventDefault();
     if (window.daum && window.daum.Postcode) {
       new window.daum.Postcode({
-        oncomplete: function (data: any) {
+        oncomplete: function (data) {
           // 도로명 주소의 노출 규칙에 따라 주소를 조합
           let fullAddress = data.address;
           let extraAddress = '';
@@ -129,8 +140,6 @@ export default function Member() {
       const response = await axios.post('http://127.0.0.1:8080/api/members/register', formData);
 
       if (response.status === 200 || response.status === 201) {
-        setNotice({ message: '회원가입이 완료되었습니다', status: 'success' });
-
         // 만약 백엔드에서 가입과 동시에 토큰을 내려준다면 바로 전역 상태(Redux)에 저장
         const token = response.data.token;
         if(token){
@@ -139,10 +148,12 @@ export default function Member() {
             userInfo: { firstName: formData.firstName, lastName: formData.lastName, email: formData.email },
           }));
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          setNextRoute('/dashboard'); // 로그인 페이지로 이동
+          const access = await requestCurrentAccess(token).catch(() => null);
+          setNextRoute(access ? firstAvailableMenu(access) : '/dashboard');
         }else {
           setNextRoute('/');
         }
+        setNotice({ message: '회원가입이 완료되었습니다', status: 'success' });
       }
     } catch (error) {
       console.error('회원가입 에러:', error);

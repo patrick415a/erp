@@ -90,11 +90,16 @@
   h2 {
     font-size: 15px;
   }
+}
+
+.chartHeader {
+  gap: 4px 8px;
 
   p {
-    margin-top: 2px;
+    margin-inline-start: auto;
     color: var(--muted);
     font-size: 13px;
+    text-align: end;
   }
 }
 
@@ -113,6 +118,10 @@
   height: 228px;
   padding: 16px;
   font-size: 12px;
+
+  :global(.recharts-wrapper) [tabindex]:focus:not(:focus-visible) {
+    outline: none;
+  }
 }
 
 .chartState {
@@ -134,6 +143,15 @@
   }
 }
 
+.dashboardEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
 .inventoryChart {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(84px, auto);
@@ -145,12 +163,18 @@
 
 .donut {
   position: relative;
+  isolation: isolate;
   min-width: 0;
   height: 160px;
 }
 
+.donutChart {
+  z-index: 1;
+}
+
 .donutTotal {
   position: absolute;
+  z-index: 0;
   inset: 0;
   display: grid;
   place-content: center;

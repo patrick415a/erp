@@ -9,6 +9,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { useState } from 'react';
 import ModalLayout from './ModalLayout';
 import type { Schedule } from '@/app/types/schedule';
+import { useAccess } from '@/store/access';
 export type { Schedule } from '@/app/types/schedule';
 
 interface ScheduleModalProps {
@@ -28,6 +29,10 @@ export default function ScheduleModal({
   schedules,
   setSchedules,
 }: ScheduleModalProps) {
+  const { can } = useAccess();
+  const canCreate = can('CALENDAR_CREATE');
+  const canUpdate = can('CALENDAR_UPDATE');
+  const canDelete = can('CALENDAR_DELETE');
   const [formTitle, setFormTitle] = useState('');
   const [formTime, setFormTime] = useState('');
   const [formContent, setFormContent] = useState('');
@@ -38,6 +43,7 @@ export default function ScheduleModal({
   const [isSelectOpen, setIsSelectOpen] = useState(false);
 
   const fullDate = `${year}-${String(month).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+  const canSave = editingId ? canUpdate : canCreate;
 
   const resetForm = () => {
     setFormTitle('');
@@ -49,6 +55,7 @@ export default function ScheduleModal({
   };
 
   const handleSave = () => {
+    if (!canSave) return;
     const title = formTitle.trim();
     const content = formContent.trim();
     if (!title && !content) return;
@@ -92,6 +99,7 @@ export default function ScheduleModal({
   };
 
   const handleDelete = (id: string) => {
+    if (!canDelete) return;
     if (confirm('일정을 삭제하시겠습니까?')) {
       setSchedules((prev) => prev.filter((sch) => sch.id !== id));
       if (editingId === id) {
@@ -102,7 +110,7 @@ export default function ScheduleModal({
 
   return (
     <ModalLayout isOpen onClose={onClose} title={`${month}월 ${selectedDate}일 업무 일정`}>
-      <div className={modalPartsStyles.formGroup}>
+      {canSave && <div className={modalPartsStyles.formGroup}>
         <div className={formControlsStyles.field}>
           <label className={formControlsStyles.label} htmlFor="schedule-title">
             일정 제목
@@ -161,10 +169,10 @@ export default function ScheduleModal({
           onChange={(e) => setFormContent(e.target.value)}
           className={formControlsStyles.textarea}
         />
-      </div>
+      </div>}
 
       <div className={modalPartsStyles.actions}>
-        <button
+        {canSave && <button
           type="button"
           onClick={handleSave}
           disabled={!formTitle.trim() && !formContent.trim()}
@@ -172,7 +180,7 @@ export default function ScheduleModal({
           className={buttonStyles.button}
         >
           {editingId ? '수정' : '등록'}
-        </button>
+        </button>}
         <button onClick={onClose} data-variant="gray" className={buttonStyles.button}>
           닫기
         </button>
@@ -192,22 +200,22 @@ export default function ScheduleModal({
               {sch.title && <strong>{sch.title}</strong>}
               {sch.content && <p>{sch.content}</p>}
               <div className={modalPartsStyles.actions}>
-                <button
+                {canUpdate && <button
                   onClick={() => handleEdit(sch)}
                   data-variant="kakao"
                   data-size="small"
                   className={buttonStyles.button}
                 >
                   수정
-                </button>
-                <button
+                </button>}
+                {canDelete && <button
                   onClick={() => handleDelete(sch.id)}
                   data-variant="danger"
                   data-size="small"
                   className={buttonStyles.button}
                 >
                   삭제
-                </button>
+                </button>}
               </div>
             </li>
           ))}

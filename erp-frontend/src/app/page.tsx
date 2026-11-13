@@ -9,6 +9,8 @@ import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '@/store/store';
 import { loadUserInfo, setLogin } from '@/store/authSlice';
 import { memberApiUrl } from '@/app/api/members';
+import { firstAvailableMenu } from '@/app/api/access';
+import { requestCurrentAccess } from '@/app/api/erpClient';
 
 import Link from 'next/link';
 import axios from 'axios';
@@ -48,10 +50,13 @@ export default function Home() {
     async (token: string, signal?: AbortSignal) => {
       dispatch(setLogin({ token }));
       axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
-      await dispatch(loadUserInfo(token));
+      const [, access] = await Promise.all([
+        dispatch(loadUserInfo(token)),
+        requestCurrentAccess(token, signal).catch(() => null),
+      ]);
       if (signal?.aborted) return;
       setNotice({ message: '로그인되었습니다.', status: 'success' });
-      setNextRoute('/dashboard');
+      setNextRoute(access ? firstAvailableMenu(access) : '/dashboard');
     },
     [dispatch],
   );

@@ -30,27 +30,35 @@
     margin: 0;
     padding: 0;
   }
-  li {
-    padding: 13px 14px;
-    border-radius: 6px;
-    color: var(--muted);
-    font-size: 13px;
-    cursor: pointer;
-    transition: background .15s;
-    button[data-variant='ghost'] {
-      color: inherit;
-    }
-    &:hover {
-      background: #f5f7fb;
-    }
-    + li {
-      margin-top: 5px;
-    }
-    &.active {
-      background: #edf2ff;
-      color: var(--primary);
-      font-weight: 650;
-    }
+  li + li {
+    margin-top: 5px;
+  }
+}
+
+.menuButton {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  padding: 13px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  transition: background .15s;
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+  &:hover {
+    background: #f5f7fb;
+  }
+  &[aria-pressed='true'] {
+    background: #edf2ff;
+    color: var(--primary);
+    font-weight: 650;
   }
 }
 
@@ -83,14 +91,114 @@
 }
 
 .roleList {
+  display: grid;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
+}
 
-  li:first-child {
-    border-top: 0;
-    padding-top: 0;
+.roleCard {
+  @include mixins.surface;
+  padding: 16px;
+}
+
+.roleHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  > button {
+    margin-inline-start: auto;
   }
+}
+
+.roleHeader .roleIcon {
+  display: grid;
+  place-items: center;
+  inline-size: 34px;
+  block-size: 34px;
+  padding: 0;
+  border-radius: 8px;
+
+  &::before {
+    content: none;
+  }
+}
+
+.roleGrants {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.grantRow {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 12px;
+  padding-block: 4px;
+  font-size: 13px;
+
+  dt {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 0;
+  }
+}
+
+.roleEmpty {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.permissionOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+
+  label:has(input:disabled) {
+    color: var(--muted);
+    cursor: default;
+  }
+}
+
+.permissionGroups {
+  display: grid;
+  gap: 10px;
+}
+
+.permissionGroup {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-inline: 4px;
+    font-size: 13px;
+    font-weight: 650;
+  }
+}
+
+.roleNotice {
+  margin-top: 14px;
+  color: #187257;
 }
 
 .formGroup {
@@ -145,6 +253,12 @@
   }
 }
 
+@media (max-width: 480px) {
+  .grantRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @include mixins.mobile {
   .header h2 {
     font-size: 23px;
@@ -159,13 +273,14 @@
       display: flex;
       overflow-x: auto;
     }
-    li {
-      padding: 10px 12px;
-      white-space: nowrap;
-      + li {
-        margin: 0;
-      }
+    li + li {
+      margin: 0;
     }
+  }
+  .menuButton {
+    min-height: 44px;
+    padding: 10px 12px;
+    white-space: nowrap;
   }
   .mainPanel {
     padding: 0 20px 24px;

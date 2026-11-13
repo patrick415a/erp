@@ -8,8 +8,10 @@ import AlertModal from '@/components/modal/AlertModal';
 import ModalLayout from '@/components/modal/ModalLayout';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
+import { StatusSearch } from '@/components/ui/StatusSearch';
 import { Temporal } from '@js-temporal/polyfill';
-import axios from 'axios';
+import { erpClient } from '@/app/api/erpClient';
+import { useAccess } from '@/store/access';
 import { Layout } from '@/components/Layout';
 import { useEffect, useState, type FormEvent } from 'react';
 import view from '@/assets/dashboard/WorkPage.module.scss';
@@ -25,8 +27,14 @@ interface Employee {
 
 type EmployeeDialog = { mode: 'create' } | { mode: 'edit' | 'delete'; employee: Employee };
 
-const employeesUrl = 'http://localhost:8080/api/hr/employees';
+const employeesUrl = '/api/hr/employees';
+const employeeStatuses = {
+  active: { label: '재직중', tone: 'success' },
+  leave: { label: '휴직', tone: 'warning' },
+  resigned: { label: '퇴사', tone: 'danger' },
+};
 const dialogActions = { create: '등록', edit: '수정', delete: '삭제' };
+const dialogPermissions = { create: 'HR_CREATE', edit: 'HR_UPDATE', delete: 'HR_DELETE' } as const;
 const employeeFields = [
   { name: 'name', label: '이름' },
   { name: 'department', label: '부서' },
@@ -34,20 +42,21 @@ const employeeFields = [
 ] as const;
 
 export default function HrPage() {
+  const { can } = useAccess();
+  const canCreate = can('HR_CREATE');
+  const canUpdate = can('HR_UPDATE');
+  const canDelete = can('HR_DELETE');
+  const showActions = canUpdate || canDelete;
   const [employees, setEmployees] = useState<Employee[]>([]);
 
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [{ keyword, status }, setSearch] = useState({ keyword: '', status: '' });
 
-  const filteredEmployees = employees.filter((employee) => {
-    const keyword = appliedKeyword.trim().toLowerCase();
-
-    return (
-      employee.id.toLowerCase().includes(keyword) ||
+  const filteredEmployees = employees.filter((employee) =>
+    (!status || employee.status === status) &&
+    (employee.id.toLowerCase().includes(keyword) ||
       employee.name.toLowerCase().includes(keyword) ||
-      employee.department.toLowerCase().includes(keyword)
-    );
-  });
+      employee.department.toLowerCase().includes(keyword))
+  );
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -64,7 +73,7 @@ export default function HrPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogError, setDialogError] = useState('');
   const [notice, setNotice] = useState('');
-  const emptyMessage = appliedKeyword.trim() ? '검색 결과가 없습니다.' : '등록된 임직원이 없습니다.';
+  const emptyMessage = keyword || status ? '검색 결과가 없습니다.' : '등록된 임직원이 없습니다.';
   const listMessage = isLoading
     ? '임직원 목록을 불러오는 중입니다.'
     : loadError && employees.length === 0
@@ -74,7 +83,7 @@ export default function HrPage() {
   useEffect(() => {
     const controller = new AbortController();
 
-    axios.get<Employee[]>(employeesUrl, { signal: controller.signal }).then(({ data }) => {
+    erpClient.get<Employee[]>(employeesUrl, { signal: controller.signal }).then(({ data }) => {
       if (!controller.signal.aborted) setEmployees(data);
     }).catch((error) => {
       if (!controller.signal.aborted) {
@@ -99,7 +108,7 @@ export default function HrPage() {
 
   const submitEmployee = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!dialog || isSubmitting) return;
+    if (!dialog || isSubmitting || !can(dialogPermissions[dialog.mode])) return;
 
     const form = new FormData(event.currentTarget);
     const action = dialogActions[dialog.mode];
@@ -109,7 +118,7 @@ export default function HrPage() {
     try {
       if (dialog.mode === 'delete') {
         const { id } = dialog.employee;
-        await axios.delete(`${employeesUrl}/${encodeURIComponent(id)}`);
+        await erpClient.delete(`${employeesUrl}/${encodeURIComponent(id)}`);
         setEmployees((current) => current.filter((employee) => employee.id !== id));
       } else {
         const employee = {
@@ -127,10 +136,10 @@ export default function HrPage() {
 
         if (dialog.mode === 'edit') {
           const { id } = dialog.employee;
-          const { data } = await axios.put<Employee>(`${employeesUrl}/${encodeURIComponent(id)}`, employee);
+          const { data } = await erpClient.put<Employee>(`${employeesUrl}/${encodeURIComponent(id)}`, employee);
           setEmployees((current) => current.map((item) => (item.id === id ? data : item)));
         } else {
-          const { data } = await axios.post<Employee>(employeesUrl, employee);
+          const { data } = await erpClient.post<Employee>(employeesUrl, employee);
           setEmployees((current) => [...current, data]);
         }
       }
@@ -158,25 +167,9 @@ export default function HrPage() {
     );
   }).length;
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return (
-          <span data-tone="success" className={dataViewStyles.badge}>재직중</span>
-        );
-      case 'leave':
-        return (
-          <span data-tone="warning" className={dataViewStyles.badge}>휴직</span>
-        );
-      case 'resigned':
-        return (
-          <span data-tone="danger" className={dataViewStyles.badge}>퇴사</span>
-        );
-      default:
-        return (
-          <span data-tone="secondary" className={dataViewStyles.badge}>알수없음</span>
-        );
-    }
+  const getStatusBadge = (status: Employee['status']) => {
+    const badge = employeeStatuses[status] ?? { label: '알수없음', tone: 'secondary' };
+    return <span data-tone={badge.tone} className={dataViewStyles.badge}>{badge.label}</span>;
   };
 
   return (
@@ -189,9 +182,9 @@ export default function HrPage() {
             <p>임직원 정보와 재직 현황을 한눈에 확인합니다.</p>
           </div>
 
-          <div className={dataViewStyles.pageActions}>
+          {canCreate && <div className={dataViewStyles.pageActions}>
             <button type="button" className={buttonStyles.button} onClick={() => openDialog({ mode: 'create' })}disabled={isLoading}>신규 직원 등록</button>
-          </div>
+          </div>}
         </header>
 
         <div className={dataViewStyles.statsGrid}>
@@ -224,17 +217,15 @@ export default function HrPage() {
           <header className={dataViewStyles.panelHeader}>
             <h2>임직원 목록</h2>
 
-            <div className={view.search}>
-              <input type="text" className={formStyles.input} aria-label="사번, 이름 또는 부서 검색" placeholder="사번, 이름 또는 부서 검색..." value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  setAppliedKeyword(searchKeyword);
-                  setCurrentPage(1);
-                }
-              }}/>
-
-              <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" onClick={() => {setAppliedKeyword(searchKeyword); setCurrentPage(1);}}>검색</button>
-            </div>
+            <StatusSearch
+              keywordLabel="사번, 이름 또는 부서 검색"
+              statusLabel="근무 상태"
+              statuses={employeeStatuses}
+              onSearch={(keyword, status) => {
+                setSearch({ keyword, status });
+                setCurrentPage(1);
+              }}
+            />
           </header>
 
           <div className={dataViewStyles.tableScroller}>
@@ -247,14 +238,14 @@ export default function HrPage() {
                   <th>직급/직책</th>
                   <th className={view.center}>상태</th>
                   <th>입사일</th>
-                  <th className={view.center}>관리</th>
+                  {showActions && <th className={view.center}>관리</th>}
                 </tr>
               </thead>
 
               <tbody>
                 {listMessage ? (
                   <tr>
-                    <td colSpan={7} className={dataViewStyles.tableMessage}>
+                    <td colSpan={showActions ? 7 : 6} className={dataViewStyles.tableMessage}>
                       <p role="status">{listMessage}</p>
                     </td>
                   </tr>
@@ -268,12 +259,12 @@ export default function HrPage() {
                     <td>{emp.role}</td>
                     <td className={view.center}>{getStatusBadge(emp.status)}</td>
                     <td>{emp.joinDate}</td>
-                    <td className={view.center}>
+                    {showActions && <td className={view.center}>
                       <div className={view.rowActions}>
-                        <button type="button" data-variant="outline" data-size="small" className={buttonStyles.button} onClick={() => openDialog({ mode: 'edit', employee: emp })}>수정</button>
-                        <button type="button" data-variant="danger" data-size="small" className={buttonStyles.button} onClick={() => openDialog({ mode: 'delete', employee: emp })}>삭제</button>
+                        {canUpdate && <button type="button" data-variant="outline" data-size="small" className={buttonStyles.button} onClick={() => openDialog({ mode: 'edit', employee: emp })}>수정</button>}
+                        {canDelete && <button type="button" data-variant="danger" data-size="small" className={buttonStyles.button} onClick={() => openDialog({ mode: 'delete', employee: emp })}>삭제</button>}
                       </div>
-                    </td>
+                    </td>}
                   </tr>
                 ))}
               </tbody>
@@ -287,7 +278,7 @@ export default function HrPage() {
       </div>
     </Layout>
 
-    {dialog && (
+    {dialog && can(dialogPermissions[dialog.mode]) && (
       <ModalLayout isOpen onClose={closeDialog} title={dialog.mode === 'create' ? '신규 직원 등록' : `직원 정보 ${dialogActions[dialog.mode]}`}>
         <form onSubmit={submitEmployee} aria-busy={isSubmitting}>
           {dialog.mode === 'delete' ? (
@@ -306,9 +297,9 @@ export default function HrPage() {
               <div className={formStyles.field}>
                 <label htmlFor="hr-employee-status" className={formStyles.label}>근무 상태</label>
                 <select id="hr-employee-status" name="status" className={formStyles.input} defaultValue={selectedEmployee?.status ?? 'active'} disabled={isSubmitting}>
-                  <option value="active">재직중</option>
-                  <option value="leave">휴직</option>
-                  <option value="resigned">퇴사</option>
+                  {Object.entries(employeeStatuses).map(([value, { label }]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
                 </select>
               </div>
 

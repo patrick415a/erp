@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { EmailMessageForm } from '@/components/EmailMessageForm';
 import dataView from '@/assets/common/DataView.module.scss';
-import buttons from '@/assets/common/Button.module.scss';
 import styles from '@/assets/dashboard/settings/Settings.module.scss';
 
 const questions = [
@@ -42,11 +41,10 @@ export default function SupportPage() {
                 ['inquiry', '1:1 문의'],
               ] as const
             ).map(([id, label]) => (
-              <li key={id} className={tab === id ? styles.active : undefined}>
+              <li key={id}>
                 <button
                   type="button"
-                  className={buttons.button}
-                  data-variant="ghost"
+                  className={styles.menuButton}
                   aria-pressed={tab === id}
                   onClick={() => setTab(id)}
                 >

@@ -4,6 +4,7 @@ import { Provider } from "react-redux";
 import { useEffect } from 'react';
 import { loadUserInfo } from './authSlice';
 import { store } from "./store";
+import { AccessProvider } from './access';
 
 export default function ReduxProvider({children}: {children: React.ReactNode}) {
   useEffect(() => {
@@ -13,7 +14,7 @@ export default function ReduxProvider({children}: {children: React.ReactNode}) {
 
   return (
     <Provider store={store}>
-      {children}
+      <AccessProvider>{children}</AccessProvider>
     </Provider>
   );
 }

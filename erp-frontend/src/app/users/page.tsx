@@ -1,167 +1,234 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import axios from 'axios';
+import { erpClient } from '@/app/api/erpClient';
+import { roles, type MemberRole } from '@/app/api/access';
+import { useAccess } from '@/store/access';
+import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import dataView from '@/assets/common/DataView.module.scss';
+import styles from '@/assets/dashboard/users/Users.module.scss';
 import { Layout } from '@/components/Layout';
-import dataViewStyles from '@/assets/common/DataView.module.scss';
+import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
+import { StatusSearch } from '@/components/ui/StatusSearch';
+import type { RootState } from '@/store/store';
 
-type MemberRole = | "SYSTEM_ADMIN" | "PRODUCTION_MANAGER" | "EMPLOYEE";
-
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    role: MemberRole;
-    createdAt: string;
+interface RoleNotice {
+  message: string;
+  status: 'success' | 'error';
 }
 
-const roleNames: Record<MemberRole, string> = {
-    SYSTEM_ADMIN: "시스템 관리자",
-    PRODUCTION_MANAGER: "생산 관리자",
-    EMPLOYEE: "일반 임직원"
-};
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: MemberRole | null;
+  assignableRoles: MemberRole[];
+}
+
+const usersUrl = '/api/admin/users';
+const usersPerPage = 10;
+
+function getErrorMessage(error: unknown, fallback: string) {
+  const response = axios.isAxiosError<{ detail?: string }>(error) ? error.response : undefined;
+  const status = response?.status;
+  if (status === 401) return '로그인 후 다시 시도해 주세요.';
+  if (status === 403) return response?.data?.detail ?? '이 작업을 수행할 권한이 없습니다.';
+  if (status === 404) return '사용자를 찾을 수 없습니다. 사용자 권한관리 화면을 다시 열어 주세요.';
+  return fallback;
+}
 
 export default function UsersPage() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [savingId, setSavingId] = useState<number | null>(null);
+  const { can } = useAccess();
+  const canUpdate = can('USERS_UPDATE');
+  const currentUserEmail = useSelector((state: RootState) => state.auth.userInfo?.email);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [pendingChange, setPendingChange] = useState<{ userId: number; role: MemberRole } | null>(null);
+  const [notice, setNotice] = useState<RoleNotice | null>(null);
+  const [{ keyword, status }, setSearch] = useState({ keyword: '', status: '' });
+  const [currentPage, setCurrentPage] = useState(1);
 
-    const fetchUsers = async () => {
-        try {
-            setError("");
+  const filteredUsers = users.filter((user) =>
+    (!status || user.role === status) &&
+    (user.name.toLowerCase().includes(keyword) || user.email.toLowerCase().includes(keyword))
+  );
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / usersPerPage));
+  const page = Math.min(currentPage, totalPages);
+  const visibleUsers = filteredUsers.slice((page - 1) * usersPerPage, page * usersPerPage);
+  const hasSearch = Boolean(keyword || status);
+  const emptyMessage = hasSearch ? '검색 결과가 없습니다.' : '등록된 사용자가 없습니다.';
+  const listMessage = isLoading
+    ? '사용자 목록을 불러오는 중입니다.'
+    : loadError || (filteredUsers.length === 0 ? emptyMessage : '');
 
-            const token = localStorage.getItem("token");
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    erpClient.get<User[]>(usersUrl, { signal })
+      .then(({ data }) => {
+        if (signal.aborted) return;
+        setUsers(data);
+      })
+      .catch((error) => {
+        if (signal.aborted) return;
+        const message = getErrorMessage(error, '사용자 목록을 불러오지 못했습니다.');
+        setLoadError(message);
+        setNotice({ message, status: 'error' });
+      })
+      .finally(() => {
+        if (!signal.aborted) setIsLoading(false);
+      });
 
-            const response = await fetch("http://localhost:8080/api/admin/users", {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+    return () => controller.abort();
+  }, [canUpdate]);
 
-            if (!response.ok) {
-                throw new Error(`회원 목록 조회 실패 (${response.status})`);
-            }
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => {
+      setNotice((current) => current === notice ? null : current);
+    }, notice.status === 'success' ? 3000 : 5000);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
 
-            const data: User[] = await response.json();
-            setUsers(data);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "조회 오류");
-        } finally {
-            setLoading(false);
-        }
-    };
+  async function changeRole(user: User, role: MemberRole) {
+    if (!canUpdate || pendingChange || role === user.role || !user.assignableRoles.includes(role)) return;
+    setPendingChange({ userId: user.id, role });
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
+    try {
+      await erpClient.put(`${usersUrl}/${user.id}/role`, { role });
+      setUsers((current) => current.map((entry) => entry.id === user.id ? { ...entry, role } : entry));
+      setNotice({ message: `${user.name}님의 권한을 변경했습니다.`, status: 'success' });
+    } catch (error) {
+      setNotice({
+        message: getErrorMessage(error, '사용자 권한을 변경하지 못했습니다. 다시 시도해 주세요.'),
+        status: 'error',
+      });
+    } finally {
+      setPendingChange(null);
+    }
+  }
 
-    const changeRole = async (userId: number, role: MemberRole) => {
-        const confirmed = window.confirm(`${roleNames[role]} 권한으로 변경할까요?`);
+  return (
+    <Layout>
+      <header className={dataView.pageHeader}>
+        <div>
+          <h1>사용자 권한관리</h1>
+          <p>ERP 사용자 목록과 권한을 관리합니다.</p>
+        </div>
+      </header>
 
-        if (!confirmed) return;
+      <div className={dataView.statsGrid} aria-busy={isLoading}>
+        {Object.entries(roles).map(([role, { label, tone, icon }]) => (
+          <section key={role} className={dataView.statCard} data-tone={tone}>
+            <span className={dataView.statLabel}>{label}</span>
+            <strong className={dataView.statValue}>
+              {isLoading || loadError ? '—' : `${users.filter((user) => user.role === role).length.toLocaleString()}명`}
+            </strong>
+            <span className={dataView.statDecoration}>
+              <Icon name={icon} size={19} />
+            </span>
+          </section>
+        ))}
+      </div>
 
-        try {
-            setSavingId(userId);
+      <section className={dataView.panel} aria-busy={isLoading || pendingChange !== null}>
+        <header className={dataView.panelHeader}>
+          <div>
+            <h2>사용자 목록</h2>
+            {hasSearch && !isLoading && !loadError && (
+              <p className={styles.muted}>검색 결과 {filteredUsers.length}명</p>
+            )}
+          </div>
+          <StatusSearch
+            keywordLabel="이름 또는 이메일 검색"
+            statusLabel="현재 권한"
+            statuses={roles}
+            onSearch={(keyword, status) => {
+              setSearch({ keyword, status });
+              setCurrentPage(1);
+            }}
+          />
+        </header>
+        <div className={dataView.tableScroller}>
+          <table className={dataView.table}>
+            <thead>
+              <tr>
+                <th scope="col">회원 ID</th>
+                <th scope="col">이름</th>
+                <th scope="col">이메일</th>
+                <th scope="col">현재 권한</th>
+                {canUpdate && <th scope="col">권한 변경</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {listMessage ? (
+                <tr>
+                  <td colSpan={canUpdate ? 5 : 4} className={dataView.tableMessage}><p role="status">{listMessage}</p></td>
+                </tr>
+              ) : visibleUsers.map((user) => {
+                const currentRole = user.role && roles[user.role];
+                const isCurrentUser = currentUserEmail === user.email;
+                const isSaving = pendingChange?.userId === user.id;
 
-            const token = localStorage.getItem("token");
+                return (
+                  <tr key={user.id}>
+                    <td>{user.id}</td>
+                    <td><strong>{user.name}</strong></td>
+                    <td>{user.email}</td>
+                    <td>
+                      <span className={dataView.badge} data-tone={currentRole?.tone}>
+                        {currentRole?.label ?? '미설정'}
+                      </span>
+                    </td>
+                    {canUpdate && <td>
+                      {isCurrentUser ? (
+                        <span className={`${styles.muted} ${styles.ownAccount}`}>내 계정</span>
+                      ) : !user.assignableRoles.some((role) => role !== user.role) ? (
+                        <span className={`${styles.muted} ${styles.ownAccount}`}>—</span>
+                      ) : (
+                        <select
+                          aria-label={`${user.name} 권한 변경`}
+                          className={styles.roleSelect}
+                          value={isSaving ? pendingChange.role : user.role ?? ''}
+                          disabled={pendingChange !== null}
+                          onChange={(event) => void changeRole(user, event.target.value as MemberRole)}
+                        >
+                          {!currentRole && <option value="" disabled>권한 선택</option>}
+                          {user.assignableRoles.map((role) => (
+                            <option key={role} value={role}>{roles[role].label}</option>
+                          ))}
+                        </select>
+                      )}
+                    </td>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {!listMessage && (
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setCurrentPage} label="사용자 목록 페이지" />
+        )}
+      </section>
 
-            const response = await fetch(`http://localhost:8080/api/admin/users/${userId}/role`, {
-                method: "PUT",
-                headers: { 
-                    "Content-Type": "application/json", 
-                    Authorization: `Bearer ${token}` 
-                },
-                body: JSON.stringify({ role })
-            });
-
-            if (!response.ok) {
-                throw new Error(`권한 변경 실패 (${response.status})`);
-            }
-
-            alert("사용자 권한이 변경되었습니다.");
-            await fetchUsers();
-        } catch (err) {
-            alert(err instanceof Error ? err.message : "권한 변경 중 오류가 발생했습니다.");
-        } finally {
-            setSavingId(null);
-        }
-    };
-
-    return (
-        <Layout>
-            <header className={dataViewStyles.pageHeader}>
-                <div>
-                    <h1>사용자 권한관리</h1>
-                    <p>ERP 사용자 목록과 권한을 관리합니다.</p>
-                </div>
-            </header>
-
-            <section style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "12px", padding: "24px", marginTop: "20px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "12px" }}>
-                    <div>
-                        <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "6px" }}>사용자 목록</h2>
-                        <p style={{ color: "#64748b", fontSize: "13px" }}>등록된 사용자 {users.length}명</p>
-                    </div>
-
-                    <button type="button" onClick={() => {setLoading(true); fetchUsers();}} style={{ padding: "9px 16px", borderRadius: "8px", border: "1px solid #dbe2ea", background: "#fff", cursor: "pointer", fontSize: "13px" }}>새로고침</button>
-                </div>
-
-                {loading && (
-                    <p style={{ padding: "20px", color: "#64748b" }}>회원 목록을 불러오는 중...</p>
-                )}
-
-                {error && (
-                    <p role="alert" style={{ padding: "16px", color: "#dc2626", background: "#fef2f2", borderRadius: "8px" }}>{error}</p>
-                )}
-
-                {!loading && !error && (
-                    <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "650px" }}>
-                            <thead>
-                                <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-                                    {[
-                                        "회원 ID",
-                                        "이름",
-                                        "이메일",
-                                        "현재 권한",
-                                        "권한 변경"
-                                    ].map((title) => (
-                                        <th key={title} style={{ padding: "14px", textAlign: "left", fontSize: "13px", fontWeight: 600, color: "#475569" }}>{title}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {users.map((user) => (
-                                    <tr key={user.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                                        <td style={{ padding: "16px 14px" }}>{user.id}</td>
-                                        <td style={{ padding: "16px 14px", fontWeight: 600 }}>{user.name}</td>
-                                        <td style={{ padding: "16px 14px", color: "#64748b" }}>{user.email}</td>
-                                        <td style={{ padding: "16px 14px" }}>
-                                            <span style={{
-                                                display: "inline-block", padding: "6px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: 600,
-                                                background: user.role === "SYSTEM_ADMIN" ? "#dbeafe" : user.role === "PRODUCTION_MANAGER" ? "#fef3c7" : "#f1f5f9",
-                                                color: user.role === "SYSTEM_ADMIN" ? "#1d4ed8" : user.role === "PRODUCTION_MANAGER" ? "#92400e" : "#475569"
-                                            }}>{roleNames[user.role]}</span>
-                                        </td>
-                                        <td style={{ padding: "16px 14px" }}>
-                                            <select aria-label={`${user.name} 권한 변경`} value={user.role} disabled={savingId !== null}
-                                            onChange={(e) => changeRole(user.id, e.target.value as MemberRole)}
-                                            style={{ padding: "9px 12px", border: "1px solid #dbe2da", borderRadius: "8px", background: "#fff", cursor: savingId !== null || user.role === null ? "not-allowed" : "pointer", opacity: user.role === null ? 0.6 : 1 }}>
-                                                {Object.entries(roleNames).map(([value, label]) => (
-                                                    <option key={value} value={value}>{label}</option>
-                                                ))}
-                                            </select>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        {users.length === 0 && (
-                            <p style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>등록된 사용자가 없습니다.</p>
-                        )}
-                    </div>
-                )}
-            </section>
-        </Layout>
-    )
+      <div role="status">
+        {notice && (
+          <button
+            type="button"
+            className={styles.toast}
+            data-status={notice.status}
+            aria-label={`${notice.message} 알림 닫기`}
+            onClick={() => setNotice(null)}
+          >
+            <Icon name={notice.status === 'success' ? 'check' : 'warning'} size={18} />
+            <span className={styles.toastMessage}>{notice.message}</span>
+            <Icon name="close" size={14} />
+          </button>
+        )}
+      </div>
+    </Layout>
+  );
 }

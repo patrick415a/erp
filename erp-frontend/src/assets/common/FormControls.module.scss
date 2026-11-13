@@ -1,3 +1,5 @@
+@use './mixins';
+
 .field {
   display: flex;
   flex-direction: column;
@@ -42,6 +44,10 @@
     background: #f6f8fc;
     color: #78849a;
   }
+}
+
+select.input {
+  @include mixins.select-arrow;
 }
 
 .textarea {

@@ -7,11 +7,19 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  max-width: 300px;
-  input {
+  width: min(100%, 385px);
+  input, select {
     min-height: 34px;
-    padding: 7px 11px;
+    padding-block: 7px;
+    padding-inline-start: 11px;
     font-size: 13px;
+  }
+  input {
+    padding-inline-end: 11px;
+  }
+  select {
+    flex: none;
+    width: auto;
   }
 }
 

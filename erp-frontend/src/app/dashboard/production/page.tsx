@@ -2,14 +2,15 @@
 
 import dataViewStyles from '@/assets/common/DataView.module.scss';
 import buttonStyles from '@/assets/common/Button.module.scss';
-import formStyles from '@/assets/common/FormControls.module.scss';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
+import { StatusSearch } from '@/components/ui/StatusSearch';
 
 import { Layout } from '@/components/Layout';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 import DeleteConfirmModal from '@/components/modal/DeleteConfirmModal';
-import axios from 'axios';
+import { erpClient } from '@/app/api/erpClient';
+import { useAccess } from '@/store/access';
 import { useEffect, useState } from 'react';
 import view from '@/assets/dashboard/WorkPage.module.scss';
 import modalStyles from '@/assets/modal/WorkFormModal.module.scss';
@@ -23,16 +24,22 @@ interface ProductionOrder {
   dueDate: string;
 }
 
+const productionStatuses = {
+  progress: { label: '생산중', tone: 'primary' },
+  planning: { label: '생산대기', tone: 'secondary' },
+  completed: { label: '생산완료', tone: 'success' },
+};
+
 async function requestProductionOrders(signal?: AbortSignal) {
-  const token = localStorage.getItem('token');
-  const { data } = await axios.get<ProductionOrder[]>('http://localhost:8080/api/production/orders', {
-    headers: { Authorization: `Bearer ${token}` },
-    signal,
-  });
+  const { data } = await erpClient.get<ProductionOrder[]>('/api/production/orders', { signal });
   return data;
 }
 
 export default function ProductionPage() {
+  const { can } = useAccess();
+  const canCreate = can('PRODUCTION_CREATE');
+  const canUpdate = can('PRODUCTION_UPDATE');
+  const canDelete = can('PRODUCTION_DELETE');
   const [notice, setNotice] = useState<AlertNotice | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -48,16 +55,12 @@ export default function ProductionPage() {
   const [loadError, setLoadError] = useState(false);
   const progressCount = orders.filter((order) => order.status === 'progress').length;
 
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [{ keyword, status }, setSearch] = useState({ keyword: '', status: '' });
 
-  const filteredOrders = orders.filter((order) => {
-    const keyword = appliedKeyword.trim().toLowerCase();
-
-    return (
-      order.id.toLowerCase().includes(keyword) || order.productName.toLowerCase().includes(keyword)
-    );
-  });
+  const filteredOrders = orders.filter((order) =>
+    (!status || order.status === status) &&
+    (order.id.toLowerCase().includes(keyword) || order.productName.toLowerCase().includes(keyword))
+  );
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -67,7 +70,7 @@ export default function ProductionPage() {
   const safeCurrentPage = Math.min(currentPage, totalPages);
 
   const paginatedOrders = filteredOrders.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage);
-  const emptyMessage = appliedKeyword.trim() ? '검색 결과가 없습니다.' : '등록된 생산 오더가 없습니다.';
+  const emptyMessage = keyword || status ? '검색 결과가 없습니다.' : '등록된 생산 오더가 없습니다.';
   const listMessage = isLoading
     ? '생산 오더를 불러오는 중입니다.'
     : loadError && orders.length === 0
@@ -101,18 +104,6 @@ export default function ProductionPage() {
     dueDate: ''
   })
 
-  const getBadgeStyle = (status: string) => {
-    switch (status) {
-      case 'progress':
-        return { bg: 'primary', text: '생산중' };
-      case 'completed':
-        return { bg: 'success', text: '생산완료' };
-      case 'planning':
-      default:
-        return { bg: 'secondary', text: '생산대기' };
-    }
-  };
-
   const fetchProductionOrders = async () => {
     try {
       setOrders(await requestProductionOrders());
@@ -141,7 +132,7 @@ export default function ProductionPage() {
   }, []);
 
   const handleAddOrder = async () => {
-    if (isSaving) return;
+    if (!canCreate || isSaving) return;
 
     if (
       !newOrder.productName.trim() ||
@@ -155,14 +146,7 @@ export default function ProductionPage() {
 
     try {
       setIsSaving(true);
-      const token = localStorage.getItem('token');
-
-      await axios.post('http://localhost:8080/api/production/orders', { ...newOrder }, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          'Content-Type': 'application/json'
-        }
-      });
+      await erpClient.post('/api/production/orders', newOrder);
 
       await fetchProductionOrders();
 
@@ -186,7 +170,7 @@ export default function ProductionPage() {
   };
 
   const handleUpdateOrder = async () => {
-    if (!selectedOrder || isSaving) return;
+    if (!canUpdate || !selectedOrder || isSaving) return;
 
     if (
       !selectedOrder.productName.trim() ||
@@ -203,14 +187,7 @@ export default function ProductionPage() {
 
     try {
       setIsSaving(true);
-      const token = localStorage.getItem('token');
-
-      await axios.put(`http://localhost:8080/api/production/orders/${encodeURIComponent(selectedOrder.id)}`, selectedOrder, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          'Content-Type': 'application/json'
-        }
-      });
+      await erpClient.put(`/api/production/orders/${encodeURIComponent(selectedOrder.id)}`, selectedOrder);
 
       await fetchProductionOrders();
 
@@ -227,15 +204,11 @@ export default function ProductionPage() {
   }
 
   const handleDeleteOrder = async () => {
-    if (!selectedOrder || isSaving) return;
+    if (!canDelete || !selectedOrder || isSaving) return;
 
     try {
       setIsSaving(true);
-      const token = localStorage.getItem('token');
-
-      await axios.delete(`http://localhost:8080/api/production/orders/${encodeURIComponent(selectedOrder.id)}`, {
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-      });
+      await erpClient.delete(`/api/production/orders/${encodeURIComponent(selectedOrder.id)}`);
 
       await fetchProductionOrders();
 
@@ -262,9 +235,9 @@ export default function ProductionPage() {
             <p>생산 오더의 진행 상태와 납기 일정을 확인합니다.</p>
           </div>
 
-          <div className={dataViewStyles.pageActions}>
+          {canCreate && <div className={dataViewStyles.pageActions}>
             <button onClick={() => setIsAddOpen(true)} className={buttonStyles.button}>신규 오더 등록</button>
-          </div>
+          </div>}
         </header>
 
         <div className={dataViewStyles.statsGrid}>
@@ -297,16 +270,15 @@ export default function ProductionPage() {
           <header className={dataViewStyles.panelHeader}>
             <h2>생산 오더 목록</h2>
 
-            <div className={view.search}>
-              <input type="text" className={formStyles.input} aria-label="제품명 또는 코드 검색" placeholder="제품명 또는 코드 검색..." value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  setAppliedKeyword(searchKeyword);
-                  setCurrentPage(1);
-                }
-              }}/>
-              <button type='button' className={buttonStyles.button} data-variant="outline" data-size="small" onClick={() => { setAppliedKeyword(searchKeyword); setCurrentPage(1); }}>검색</button>
-            </div>
+            <StatusSearch
+              keywordLabel="제품명 또는 코드 검색"
+              statusLabel="생산 상태"
+              statuses={productionStatuses}
+              onSearch={(keyword, status) => {
+                setSearch({ keyword, status });
+                setCurrentPage(1);
+              }}
+            />
           </header>
 
           <div className={dataViewStyles.tableScroller}>
@@ -331,7 +303,7 @@ export default function ProductionPage() {
                     </td>
                   </tr>
                 ) : paginatedOrders.map((order) => {
-                  const badge = getBadgeStyle(order.status);
+                  const badge = productionStatuses[order.status] ?? productionStatuses.planning;
                   return (
                     <tr key={order.id}>
                       <td>
@@ -340,7 +312,7 @@ export default function ProductionPage() {
                       <td>{order.productName}</td>
                       <td>{order.quantity.toLocaleString()} 개</td>
                       <td>
-                        <span data-tone={badge.bg as 'primary' | 'success' | 'secondary'} className={dataViewStyles.badge}>{badge.text}</span>
+                        <span data-tone={badge.tone} className={dataViewStyles.badge}>{badge.label}</span>
                       </td>
                       <td>
                         <div className={view.progress}>
@@ -370,7 +342,7 @@ export default function ProductionPage() {
       </div>
     </Layout>
 
-    {isAddOpen && (
+    {canCreate && isAddOpen && (
       <div className={modalStyles.overlay} data-order>
         <div className={modalStyles.dialog} role="dialog" aria-modal="true" aria-labelledby="add-order-title">
           <h2 id="add-order-title">신규 생산 오더 등록</h2>
@@ -425,29 +397,29 @@ export default function ProductionPage() {
       </div>
     )}
 
-    {isEditOpen && selectedOrder && !isDeleteOpen && (
+    {isEditOpen && selectedOrder && (!isDeleteOpen || !canDelete) && (
       <div className={modalStyles.overlay} data-order>
         <div className={modalStyles.dialog} role="dialog" aria-modal="true" aria-labelledby="edit-order-title">
-          <h2 id="edit-order-title">생산 오더 수정</h2>
+          <h2 id="edit-order-title">{canUpdate ? '생산 오더 수정' : '생산 오더 상세'}</h2>
 
           <p>오더 번호: {selectedOrder.id}</p>
 
           <label htmlFor="edit-product">제품명</label>
-          <input id="edit-product" className={modalStyles.orderInput} value={selectedOrder.productName}
+          <input id="edit-product" className={modalStyles.orderInput} value={selectedOrder.productName} readOnly={!canUpdate}
           onChange={(e) => setSelectedOrder({
             ...selectedOrder,
             productName: e.target.value
           })}/>
 
           <label htmlFor="edit-quantity">생산 수량</label>
-          <input id="edit-quantity" type="number" min="1" className={modalStyles.orderInput} value={selectedOrder.quantity}
+          <input id="edit-quantity" type="number" min="1" className={modalStyles.orderInput} value={selectedOrder.quantity} readOnly={!canUpdate}
           onChange={(e) => setSelectedOrder({
             ...selectedOrder,
             quantity: Number(e.target.value)
           })}/>
 
           <label htmlFor="edit-status">생산 상태</label>
-          <select id="edit-status" className={modalStyles.orderInput} value={selectedOrder.status}
+          <select id="edit-status" className={modalStyles.orderInput} value={selectedOrder.status} disabled={!canUpdate}
           onChange={(e) => setSelectedOrder({
             ...selectedOrder,
             status: e.target.value as ProductionOrder['status']
@@ -458,14 +430,14 @@ export default function ProductionPage() {
           </select>
 
           <label htmlFor="edit-progress">진행률 (%)</label>
-          <input id="edit-progress" type="number" min="0" max="100" className={modalStyles.orderInput} value={selectedOrder.progress}
+          <input id="edit-progress" type="number" min="0" max="100" className={modalStyles.orderInput} value={selectedOrder.progress} readOnly={!canUpdate}
           onChange={(e) => setSelectedOrder({
             ...selectedOrder,
             progress: Number(e.target.value),
           })}/>
 
           <label htmlFor="edit-due-date">납기일</label>
-          <input id="edit-due-date" type="date" className={modalStyles.orderInput} value={selectedOrder.dueDate}
+          <input id="edit-due-date" type="date" className={modalStyles.orderInput} value={selectedOrder.dueDate} readOnly={!canUpdate}
           onChange={(e) => setSelectedOrder({
             ...selectedOrder,
             dueDate: e.target.value,
@@ -475,18 +447,19 @@ export default function ProductionPage() {
             <button type="button" className={buttonStyles.button} data-variant="outline" disabled={isSaving}
             onClick={() => {
               setIsEditOpen(false);
+              setIsDeleteOpen(false);
               setSelectedOrder(null);
-            }}>취소</button>
+            }}>{canUpdate ? '취소' : '닫기'}</button>
 
-            <button type="button" className={buttonStyles.button} data-variant="danger" disabled={isSaving} onClick={() => setIsDeleteOpen(true)}>오더 삭제</button>
+            {canDelete && <button type="button" className={buttonStyles.button} data-variant="danger" disabled={isSaving} onClick={() => setIsDeleteOpen(true)}>오더 삭제</button>}
 
-            <button type="button" className={buttonStyles.button} onClick={handleUpdateOrder} disabled={isSaving}>수정 저장</button>
+            {canUpdate && <button type="button" className={buttonStyles.button} onClick={handleUpdateOrder} disabled={isSaving}>수정 저장</button>}
           </div>
         </div>
       </div>
     )}
 
-    {isDeleteOpen && selectedOrder && (
+    {canDelete && isDeleteOpen && selectedOrder && (
       <DeleteConfirmModal message={`${selectedOrder.id} 생산 오더를 정말 삭제하시겠습니까?\n삭제한 데이터는 복구할 수 없습니다.`} isDeleting={isSaving} onClose={() => setIsDeleteOpen(false)} onConfirm={handleDeleteOrder}/>
     )}
     {notice && <AlertModal isOpen {...notice} onClose={() => setNotice(null)} />}

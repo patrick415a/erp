@@ -4,6 +4,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
 import { erpApiUrl } from '@/app/api/baseUrl';
+import { useAccess } from '@/store/access';
 import AlertModal from '@/components/modal/AlertModal';
 import buttons from '@/assets/common/Button.module.scss';
 import styles from '@/assets/dashboard/settings/Settings.module.scss';
@@ -34,6 +35,8 @@ async function requestCompanyInfo(signal: AbortSignal) {
 }
 
 export function CompanyInfoForm() {
+  const { can } = useAccess();
+  const canUpdate = can('SETTINGS_UPDATE');
   const [company, setCompany] = useState(emptyCompany);
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error' | 'login'>('loading');
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -67,7 +70,7 @@ export function CompanyInfoForm() {
 
   async function saveCompany(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSaving || notice?.status === 'success') return;
+    if (!canUpdate || isSaving || notice?.status === 'success') return;
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -129,7 +132,7 @@ export function CompanyInfoForm() {
           name="name"
           value={company.name}
           onChange={(event) => updateField('name', event.target.value)}
-          readOnly={isSaving}
+          readOnly={!canUpdate || isSaving}
           required
           maxLength={100}
         />
@@ -145,7 +148,7 @@ export function CompanyInfoForm() {
           placeholder="000-00-00000"
           pattern="[0-9]{10}|[0-9]{3}-[0-9]{2}-[0-9]{5}"
           title="사업자등록번호 숫자 10자리"
-          readOnly={isSaving}
+          readOnly={!canUpdate || isSaving}
           required
           maxLength={12}
         />
@@ -158,14 +161,14 @@ export function CompanyInfoForm() {
           type="email"
           value={company.email}
           onChange={(event) => updateField('email', event.target.value)}
-          readOnly={isSaving}
+          readOnly={!canUpdate || isSaving}
           required
           maxLength={254}
         />
       </div>
-      <button type="submit" className={styles.saveBtn} disabled={isSaving}>
+      {canUpdate && <button type="submit" className={styles.saveBtn} disabled={isSaving}>
         {isSaving ? '저장 중…' : '변경사항 저장'}
-      </button>
+      </button>}
       {notice?.status === 'success' ? (
         <AlertModal isOpen status="success" message={notice.message} onClose={() => setNotice(null)} />
       ) : notice && (

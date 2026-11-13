@@ -1,17 +1,26 @@
 package com.example.demo.config;
 
+import com.example.demo.repository.MemberRepository;
+import com.example.demo.service.RolePermissionService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+
+import static com.example.demo.entity.Permission.*;
 
 @Configuration
 @EnableWebSecurity
@@ -25,18 +34,38 @@ public class SecurityConfig {
 
     // 개발 편의를 위한 기본 시큐리티 설정 (CORS, CSRF 비활성화 및 회원가입 URL 허용)
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtProvider jwtProvider,
+            MemberRepository members, RolePermissionService permissions) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // 로컬 API 테스트를 위해 CSRF 토큰 비활성화
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configure(http))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(errors -> errors.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .addFilterBefore(new ErpAuthorizationFilter(jwtProvider, members, permissions), AnonymousAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/members/**").permitAll() // 회원가입 API 등 /api/members 하위 모두 허용
-                        .requestMatchers("/api/admin/users", "/api/admin/users/**").permitAll()
-                        .requestMatchers("/api/production/**").permitAll()
-                        .requestMatchers("/api/inventory/**").permitAll()
-                        .requestMatchers("/api/hr/employees/**").permitAll()
-                        .requestMatchers("/api/settings/company").permitAll() // 회사 정보 컨트롤러에서 JWT를 확인합니다.
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/members/**", "/error").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/access").authenticated()
+                        .requestMatchers("/api/settings/permissions", "/api/settings/permissions/*").hasRole("SYSTEM_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/settings/system").hasAuthority(SYSTEM_SETTINGS_VIEW.name())
+                        .requestMatchers(HttpMethod.GET, "/api/settings/company", "/api/settings/items").hasAuthority(SETTINGS_VIEW.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/settings/company", "/api/settings/items/*").hasAuthority(SETTINGS_UPDATE.name())
+                        .requestMatchers(HttpMethod.POST, "/api/settings/items").hasAuthority(SETTINGS_CREATE.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/settings/items/*").hasAuthority(SETTINGS_DELETE.name())
+                        .requestMatchers(HttpMethod.GET, "/api/admin/users").hasAuthority(USERS_VIEW.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/admin/users/*/role").hasAuthority(USERS_UPDATE.name())
+                        .requestMatchers(HttpMethod.GET, "/api/production/orders").hasAuthority(PRODUCTION_VIEW.name())
+                        .requestMatchers(HttpMethod.POST, "/api/production/orders").hasAuthority(PRODUCTION_CREATE.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/production/orders/*").hasAuthority(PRODUCTION_UPDATE.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/production/orders/*").hasAuthority(PRODUCTION_DELETE.name())
+                        .requestMatchers(HttpMethod.GET, "/api/inventory/items").hasAuthority(INVENTORY_VIEW.name())
+                        .requestMatchers(HttpMethod.POST, "/api/inventory/items").hasAuthority(INVENTORY_CREATE.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/inventory/items/*").hasAuthority(INVENTORY_UPDATE.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/inventory/items/*").hasAuthority(INVENTORY_DELETE.name())
+                        .requestMatchers(HttpMethod.GET, "/api/hr/employees").hasAuthority(HR_VIEW.name())
+                        .requestMatchers(HttpMethod.POST, "/api/hr/employees").hasAuthority(HR_CREATE.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/hr/employees/*").hasAuthority(HR_UPDATE.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/hr/employees/*").hasAuthority(HR_DELETE.name())
+                        .anyRequest().denyAll()
                 );
         return http.build();
     }

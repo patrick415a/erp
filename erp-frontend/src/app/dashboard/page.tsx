@@ -7,7 +7,8 @@ import view from '@/assets/dashboard/WorkPage.module.scss';
 import styles from '@/assets/dashboard/Dashboard.module.scss';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
-import axios from 'axios';
+import { erpClient } from '@/app/api/erpClient';
+import { useAccess } from '@/store/access';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   BarChart,
@@ -86,11 +87,9 @@ function ChartPanel({ title, description, message, error, children }: {
 }) {
   return (
     <section className={dataView.panel}>
-      <header className={`${dataView.panelHeader} ${styles.panelHeader}`}>
-        <div>
-          <h2>{title}</h2>
-          <p>{description}</p>
-        </div>
+      <header className={`${dataView.panelHeader} ${styles.panelHeader} ${styles.chartHeader}`}>
+        <h2>{title}</h2>
+        <p>{description}</p>
       </header>
       <div className={styles.chartBody}>
         {message ? (
@@ -105,6 +104,11 @@ function ChartPanel({ title, description, message, error, children }: {
 }
 
 export default function DashboardPage() {
+  const { can } = useAccess();
+  const showProduction = can('PRODUCTION_VIEW');
+  const showInventory = can('INVENTORY_VIEW');
+  const showHr = can('HR_VIEW');
+  const hasVisibleCharts = showProduction || showInventory || showHr;
   const [currentOrderPage, setCurrentOrderPage] = useState(1);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -119,71 +123,89 @@ export default function DashboardPage() {
   const [employeeError, setEmployeeError] = useState(false);
 
   useEffect(() => {
+    if (!showProduction) return;
+    const controller = new AbortController();
     const fetchOrders = async () => {
       try {
-        const response = await axios.get<Order[]>('http://127.0.0.1:8080/api/production/orders');
-
-        setOrders([...response.data].sort(compareRecentOrders));
+        const response = await erpClient.get<Order[]>('/api/production/orders', { signal: controller.signal });
+        if (!controller.signal.aborted) {
+          setOrders([...response.data].sort(compareRecentOrders));
+          setIsError(false);
+        }
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error('생산 오더 조회 실패: ', error);
         setIsError(true);
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
     fetchOrders();
-  }, []);
+    return () => controller.abort();
+  }, [showProduction]);
 
   useEffect(() => {
+    if (!showInventory) return;
+    const controller = new AbortController();
     const fetchInventory = async () => {
       try {
-        const response = await axios.get<InventoryItem[]>('http://127.0.0.1:8080/api/inventory/items');
-
-        setItems(response.data);
+        const response = await erpClient.get<InventoryItem[]>('/api/inventory/items', { signal: controller.signal });
+        if (!controller.signal.aborted) {
+          setItems(response.data);
+          setInventoryError(false);
+        }
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error('재고 조회 실패: ', error);
         setInventoryError(true);
       } finally {
-        setInventoryLoading(false);
+        if (!controller.signal.aborted) setInventoryLoading(false);
       }
     };
 
     fetchInventory();
-  }, []);
+    return () => controller.abort();
+  }, [showInventory]);
 
   useEffect(() => {
+    if (!showHr) return;
+    const controller = new AbortController();
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get<Employee[]>('http://127.0.0.1:8080/api/hr/employees');
-
-        setEmployees(response.data);
+        const response = await erpClient.get<Employee[]>('/api/hr/employees', { signal: controller.signal });
+        if (!controller.signal.aborted) {
+          setEmployees(response.data);
+          setEmployeeError(false);
+        }
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error('임직원 조회 실패: ', error);
         setEmployeeError(true);
       } finally {
-        setEmployeeLoading(false);
+        if (!controller.signal.aborted) setEmployeeLoading(false);
       }
     };
 
     fetchEmployees();
-  }, []);
+    return () => controller.abort();
+  }, [showHr]);
 
   const completedOrders = orders.filter((order) => order.status === 'completed').length;
 
   const metrics = [
     {
       href: '/dashboard/production', area: 'production', icon: 'production', label: '미완료 오더',
-      value: orders.length - completedOrders, unit: '건', loading: isLoading, error: isError,
+      value: orders.length - completedOrders, unit: '건', loading: isLoading, error: isError, visible: showProduction,
     },
     {
       href: '/dashboard/inventory', area: 'inventory', icon: 'box', label: '재고 부족 품목',
       value: items.filter((item) => item.status !== 'normal').length, unit: '건',
-      loading: inventoryLoading, error: inventoryError,
+      loading: inventoryLoading, error: inventoryError, visible: showInventory,
     },
     {
       href: '/dashboard/hr', area: 'hr', icon: 'users', label: '등록 임직원',
-      value: employees.length, unit: '명', loading: employeeLoading, error: employeeError,
+      value: employees.length, unit: '명', loading: employeeLoading, error: employeeError, visible: showHr,
     },
   ] as const;
 
@@ -220,8 +242,8 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className={styles.metrics}>
-        {metrics.map(({ href, area, icon, label, value, unit, loading, error }) => (
+      {hasVisibleCharts && <div className={styles.metrics}>
+        {metrics.filter(({ visible }) => visible).map(({ href, area, icon, label, value, unit, loading, error }) => (
           <Link key={area} href={href} className={styles.metricCard} data-area={area}>
             <span className={styles.metricIcon}><Icon name={icon} size={22} /></span>
             <span>
@@ -235,10 +257,10 @@ export default function DashboardPage() {
             <span className={styles.metricArrow}><Icon name="chevron" size={15} /></span>
           </Link>
         ))}
-      </div>
+      </div>}
 
-      <div className={styles.chartGrid}>
-        <ChartPanel title="생산 오더 현황" description="생산 상태별 오더 수" message={orderMessage} error={isError}>
+      {hasVisibleCharts && <div className={styles.chartGrid}>
+        {showProduction && <ChartPanel title="생산 오더 현황" description="생산 상태별 오더 수" message={orderMessage} error={isError}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={productionChartData}>
               <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
@@ -248,13 +270,13 @@ export default function DashboardPage() {
               <Bar dataKey="count" name="오더 수" fill="var(--chart-blue)" maxBarSize={36} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </ChartPanel>
+        </ChartPanel>}
 
-        <ChartPanel title="재고 현황" description="재고 상태별 품목 비율" message={inventoryMessage} error={inventoryError}>
+        {showInventory && <ChartPanel title="재고 현황" description="재고 상태별 품목 비율" message={inventoryMessage} error={inventoryError}>
           <div className={styles.inventoryChart}>
             <div className={styles.donut}>
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <PieChart className={styles.donutChart}>
                   <Pie
                     data={inventoryChartData}
                     dataKey="value"
@@ -270,7 +292,7 @@ export default function DashboardPage() {
                       <Cell key={entry.status} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--surface)' }} />
                 </PieChart>
               </ResponsiveContainer>
               <div className={styles.donutTotal}>
@@ -287,9 +309,9 @@ export default function DashboardPage() {
               ))}
             </dl>
           </div>
-        </ChartPanel>
+        </ChartPanel>}
 
-        <ChartPanel title="인사 현황" description="재직 상태별 임직원 수" message={employeeMessage} error={employeeError}>
+        {showHr && <ChartPanel title="인사 현황" description="재직 상태별 임직원 수" message={employeeMessage} error={employeeError}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={employeeChartData} layout="vertical" margin={{ right: 12 }}>
               <CartesianGrid horizontal={false} stroke="var(--chart-grid)" />
@@ -299,15 +321,18 @@ export default function DashboardPage() {
               <Bar dataKey="count" name="임직원 수" fill="var(--chart-teal)" maxBarSize={22} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </ChartPanel>
-      </div>
+        </ChartPanel>}
+      </div>}
 
-      <section className={dataView.panel}>
+      {!hasVisibleCharts && (
+        <div className={`${dataView.panel} ${styles.dashboardEmpty}`} role="status">
+          <span className={styles.stateIcon}><Icon name="chart" size={21} /></span>
+          <p>조회할 수 있는 생산·재고·인사 현황이 없습니다.</p>
+        </div>
+      )}
+      {showProduction && <section className={dataView.panel}>
         <header className={`${dataView.panelHeader} ${styles.panelHeader}`}>
-          <div>
-            <h2>최근 생산 오더</h2>
-            {!isLoading && !isError && <p>전체 {orders.length.toLocaleString()}건 · 완료 {completedOrders.toLocaleString()}건</p>}
-          </div>
+          <h2>최근 생산 오더</h2>
           <Link href="/dashboard/production" className={buttons.button} data-variant="outline" data-size="small">
             전체 오더 보기
           </Link>
@@ -363,7 +388,7 @@ export default function DashboardPage() {
         {!orderMessage && (
           <Pagination currentPage={orderPage} totalPages={totalOrderPages} onPageChange={setCurrentOrderPage} label="최근 생산 오더 페이지" />
         )}
-      </section>
+      </section>}
     </Layout>
   );
 }

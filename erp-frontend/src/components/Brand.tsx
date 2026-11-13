@@ -1,18 +1,16 @@
 import styles from '@/assets/layout/Brand.module.scss';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-export function Brand({ compact = false }: { compact?: boolean }) {
-  const router = useRouter();
-
+export function Brand({ compact = false, href = '/dashboard' }: { compact?: boolean; href?: string }) {
   return (
-    <div
+    <Link
       className={`${styles.brand} ${compact ? styles.compact : ''}`}
-      onClick={() => router.push('/dashboard')}
+      href={href}
     >
       <span className={styles.mark} aria-hidden="true">
         E
       </span>
       <span>ERP 시스템</span>
-    </div>
+    </Link>
   );
 }

@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from '@/assets/layout/SideBar.module.scss';
 import { Icon, type IconName } from './ui/Icon';
+import { menuPermissions } from '@/app/api/access';
+import { useAccess } from '@/store/access';
 const sections: { title: string; links: { href: string; label: string; icon: IconName }[] }[] = [
   {
     title: 'ERP 업무',
@@ -25,9 +27,14 @@ const sections: { title: string; links: { href: string; label: string; icon: Ico
 ];
 export function SideBar() {
   const pathname = usePathname();
+  const { can } = useAccess();
+  const visibleSections = sections.map((section) => ({
+    ...section,
+    links: section.links.filter(({ href }) => can(menuPermissions[href])),
+  })).filter(({ links }) => links.length > 0);
   return (
     <nav className={styles.sidebar} aria-label="업무 메뉴">
-      {sections.map((section) => (
+      {visibleSections.map((section) => (
         <section className={styles.section} key={section.title}>
           <h2>{section.title}</h2>
           <ul>

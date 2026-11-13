@@ -1,0 +1,84 @@
+@use '../../common/mixins';
+
+$role-padding-start: 10px;
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ownAccount {
+  display: inline-block;
+  padding-inline-start: $role-padding-start + 1px;
+  vertical-align: middle;
+}
+
+.roleSelect {
+  min-height: 28px;
+  padding-block: 3px;
+  padding-inline-start: $role-padding-start;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  vertical-align: middle;
+  @include mixins.select-arrow;
+
+  &:hover:enabled {
+    border-color: #b9cafa;
+  }
+
+  &:disabled {
+    opacity: .65;
+    cursor: wait;
+  }
+}
+
+.toast {
+  @include mixins.surface;
+  --notice-color: #187257;
+  position: fixed;
+  inset: 20px 20px auto auto;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 40px);
+  min-height: 42px;
+  padding: 9px 12px;
+  border-inline-start: 4px solid var(--notice-color);
+  color: var(--text);
+  box-shadow: 0 12px 32px #1c2a4b24;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: start;
+  animation: enter .2s ease both;
+
+  &[data-status='error'] {
+    --notice-color: #bb4545;
+  }
+
+  > :first-child {
+    flex: none;
+    color: var(--notice-color);
+  }
+
+  > :last-child {
+    flex: none;
+    color: var(--muted);
+  }
+}
+
+.toastMessage {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

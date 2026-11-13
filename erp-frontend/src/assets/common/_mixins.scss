@@ -10,6 +10,22 @@
   outline-offset: 3px;
 }
 
+@mixin select-arrow {
+  appearance: none;
+  padding-inline-end: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 41%, var(--muted) 42% 58%, transparent 59%),
+    linear-gradient(135deg, transparent 41%, var(--muted) 42% 58%, transparent 59%);
+  background-position: right 15px center, right 10px center;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+
+  @media (forced-colors: active) {
+    appearance: auto;
+    background-image: none;
+  }
+}
+
 @mixin tablet {
   @media (max-width: 1000px) { @content; }
 }

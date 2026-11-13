@@ -8,6 +8,7 @@ import styles from '@/assets/dashboard/calendar/ScheduleReminder.module.scss';
 import { Icon } from '@/components/ui/Icon';
 import { setSchedules } from './scheduleStorage';
 import type { Schedule } from '@/app/types/schedule';
+import { useAccess } from '@/store/access';
 
 function ActiveScheduleReminder() {
   const [notices, setNotices] = useState<Schedule[]>([]);
@@ -109,7 +110,8 @@ function ActiveScheduleReminder() {
 
 export function ScheduleReminder() {
   const pathname = usePathname();
-  return pathname === '/dashboard' || pathname.startsWith('/dashboard/') ? (
+  const { can } = useAccess();
+  return can('CALENDAR_VIEW') && (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) ? (
     <ActiveScheduleReminder />
   ) : null;
 }

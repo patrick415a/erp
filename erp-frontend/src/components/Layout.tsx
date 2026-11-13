@@ -18,6 +18,8 @@ const pageNames: Record<string, string> = {
   '/dashboard/support': '기술지원',
   '/dashboard/terms': '이용약관',
   '/dashboard/manual': '사용자 매뉴얼',
+  '/users': '사용자 권한 관리',
+  '/settings': '시스템 환경설정',
 };
 
 // 공통 틀의 디자인만 담당합니다. 업무별 입력·조회 기능은 children에 그대로 있습니다.

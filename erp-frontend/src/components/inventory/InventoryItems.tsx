@@ -1,6 +1,7 @@
 'use client';
 
-import axios from 'axios';
+import { erpClient } from '@/app/api/erpClient';
+import { useAccess } from '@/store/access';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import dataViewStyles from '@/assets/common/DataView.module.scss';
 import buttonStyles from '@/assets/common/Button.module.scss';
@@ -12,6 +13,7 @@ import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 import DeleteConfirmModal from '@/components/modal/DeleteConfirmModal';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
+import { StatusSearch } from '@/components/ui/StatusSearch';
 
 type StockStatus = 'normal' | 'low' | 'out';
 
@@ -27,10 +29,14 @@ interface InventoryItem extends ItemFields {
   status: StockStatus | null;
 }
 
-const inventoryUrl = 'http://localhost:8080/api/inventory/items';
 const categories = ['원자재', '부품', '포장재', '소모품'];
 const defaultItem: ItemFields = { name: '', category: '부품', stock: 0, unitPrice: 0 };
 const itemsPerPage = 10;
+const stockStatuses = {
+  normal: { label: '정상', tone: 'success' },
+  low: { label: '재고부족', tone: 'warning' },
+  out: { label: '품절', tone: 'danger' },
+};
 
 function getStockStatus(stock: number): StockStatus {
   if (stock === 0) return 'out';
@@ -38,12 +44,7 @@ function getStockStatus(stock: number): StockStatus {
 }
 
 function StockBadge({ status }: { status: InventoryItem['status'] }) {
-  const badges = {
-    normal: { label: '정상', tone: 'success' },
-    low: { label: '재고부족', tone: 'warning' },
-    out: { label: '품절', tone: 'danger' },
-  };
-  const badge = (status && badges[status]) || { label: '알수없음', tone: 'secondary' };
+  const badge = (status && stockStatuses[status]) || { label: '알수없음', tone: 'secondary' };
   return <span data-tone={badge.tone} className={dataViewStyles.badge}>{badge.label}</span>;
 }
 
@@ -140,11 +141,16 @@ function ItemDialog({ title, item, itemId, isSaving, onChange, onClose, onSave }
 
 export function InventoryItems({ variant }: { variant: 'inventory' | 'master' }) {
   const isMaster = variant === 'master';
+  const inventoryUrl = isMaster ? '/api/settings/items' : '/api/inventory/items';
+  const { can } = useAccess();
+  const canCreate = can(isMaster ? 'SETTINGS_CREATE' : 'INVENTORY_CREATE');
+  const canUpdate = can(isMaster ? 'SETTINGS_UPDATE' : 'INVENTORY_UPDATE');
+  const canDelete = can(isMaster ? 'SETTINGS_DELETE' : 'INVENTORY_DELETE');
+  const showActions = canUpdate || canDelete;
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [searchInput, setSearchInput] = useState('');
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [{ keyword, status }, setSearch] = useState({ keyword: '', status: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newItem, setNewItem] = useState(defaultItem);
@@ -159,7 +165,7 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
     const controller = new AbortController();
     activeRead.current = controller;
 
-    return axios.get<InventoryItem[]>(inventoryUrl, { signal: controller.signal })
+    return erpClient.get<InventoryItem[]>(inventoryUrl, { signal: controller.signal })
       .then(({ data }) => {
         if (controller.signal.aborted) return;
         setItems(data);
@@ -173,7 +179,7 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
       .finally(() => {
         if (!controller.signal.aborted) setIsLoading(false);
       });
-  }, []);
+  }, [inventoryUrl]);
 
   useEffect(() => {
     void fetchItems();
@@ -184,7 +190,7 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
   }, [fetchItems]);
 
   const saveItem = async (item: ItemFields, itemId?: string) => {
-    if (isSaving) return;
+    if (isSaving || !(itemId ? canUpdate : canCreate)) return;
 
     const name = item.name.trim();
     if (!name) {
@@ -211,11 +217,11 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
     setIsSaving(true);
     try {
       if (itemId) {
-        const { data: updatedItem } = await axios.put<InventoryItem>(inventoryUrl + '/' + encodeURIComponent(itemId), data);
+        const { data: updatedItem } = await erpClient.put<InventoryItem>(inventoryUrl + '/' + encodeURIComponent(itemId), data);
         setItems((current) => current.map((row) => row.id === itemId ? updatedItem : row));
         setEditingItem(null);
       } else {
-        const { data: createdItem } = await axios.post<InventoryItem>(inventoryUrl, data);
+        const { data: createdItem } = await erpClient.post<InventoryItem>(inventoryUrl, data);
         setItems((current) => [...current.filter((row) => row.id !== createdItem.id), createdItem]);
         setIsAddModalOpen(false);
         setNewItem(defaultItem);
@@ -232,12 +238,12 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
   };
 
   const deleteItem = async () => {
-    if (!deletingItem || isSaving) return;
+    if (!canDelete || !deletingItem || isSaving) return;
 
     const { id } = deletingItem;
     setIsSaving(true);
     try {
-      await axios.delete(inventoryUrl + '/' + encodeURIComponent(id));
+      await erpClient.delete(inventoryUrl + '/' + encodeURIComponent(id));
       setItems((current) => current.filter((item) => item.id !== id));
       if (activeRead.current) await fetchItems();
       setNotice({ message: '품목이 삭제되었습니다.', status: 'success' });
@@ -250,40 +256,35 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
     }
   };
 
-  const keyword = searchKeyword.toLowerCase();
   const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(keyword) || item.id.toLowerCase().includes(keyword)
+    (!status || item.status === status) &&
+    (item.name.toLowerCase().includes(keyword) || item.id.toLowerCase().includes(keyword))
   );
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
   const page = Math.min(currentPage, totalPages);
   const visibleItems = filteredItems.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  const emptyMessage = searchKeyword ? '검색 결과가 없습니다.' : isMaster ? '등록된 품목이 없습니다.' : '등록된 재고가 없습니다.';
+  const emptyMessage = keyword || status ? '검색 결과가 없습니다.' : isMaster ? '등록된 품목이 없습니다.' : '등록된 재고가 없습니다.';
   const listMessage = isLoading
     ? '품목 목록을 불러오는 중입니다.'
     : loadError && items.length === 0
       ? '품목 목록을 불러오지 못했습니다.'
       : filteredItems.length === 0 ? emptyMessage : null;
 
-  const addButton = (
+  const addButton = canCreate && (
     <button type="button" className={buttonStyles.button} disabled={isSaving} onClick={() => setIsAddModalOpen(true)}>
       신규 품목 등록
     </button>
   );
   const search = (
-    <form className={view.search} onSubmit={(event) => {
-      event.preventDefault();
-      setSearchKeyword(searchInput.trim());
-      setCurrentPage(1);
-    }}>
-      <input
-        className={formControlsStyles.input}
-        placeholder="품목명 또는 코드 검색..."
-        aria-label="품목명 또는 코드 검색"
-        value={searchInput}
-        onChange={(event) => setSearchInput(event.target.value)}
-      />
-      <button type="submit" className={buttonStyles.button} data-variant="outline" data-size="small">검색</button>
-    </form>
+    <StatusSearch
+      keywordLabel="품목명 또는 코드 검색"
+      statusLabel="재고 상태"
+      statuses={stockStatuses}
+      onSearch={(keyword, status) => {
+        setSearch({ keyword, status });
+        setCurrentPage(1);
+      }}
+    />
   );
 
   return (
@@ -295,7 +296,7 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
               <h1>재고관리</h1>
               <p>품목별 재고 수량과 자산 현황을 확인합니다.</p>
             </div>
-            <div className={dataViewStyles.pageActions}>{addButton}</div>
+            {addButton && <div className={dataViewStyles.pageActions}>{addButton}</div>}
           </header>
           <div className={dataViewStyles.statsGrid}>
             <section className={dataViewStyles.statCard} data-tone="primary">
@@ -348,14 +349,14 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
                 <th>분류</th>
                 {!isMaster && <th className={view.number}>현재고</th>}
                 <th className={view.number}>{isMaster ? '기준 단가' : '단가 (원)'}</th>
-                {!isMaster && <th className={view.center}>상태</th>}
-                <th className={view.center}>관리</th>
+                <th className={view.center}>상태</th>
+                {showActions && <th className={view.center}>관리</th>}
               </tr>
             </thead>
             <tbody>
               {listMessage ? (
                 <tr>
-                  <td colSpan={isMaster ? 5 : 7} className={dataViewStyles.tableMessage}>
+                  <td colSpan={5 + Number(!isMaster) + Number(showActions)} className={dataViewStyles.tableMessage}>
                     <p role="status">{listMessage}</p>
                   </td>
                 </tr>
@@ -366,13 +367,13 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
                   <td>{item.category}</td>
                   {!isMaster && <td className={view.number}><strong>{item.stock.toLocaleString()}</strong></td>}
                   <td className={view.number}>{item.unitPrice.toLocaleString()}{isMaster && '원'}</td>
-                  {!isMaster && <td className={view.center}><StockBadge status={item.status} /></td>}
-                  <td>
+                  <td className={view.center}><StockBadge status={item.status} /></td>
+                  {showActions && <td>
                     <div className={view.rowActions}>
-                      <button type="button" className={buttonStyles.button} data-variant="outline" data-size="small" disabled={isSaving} onClick={() => setEditingItem({ ...item })}>수정</button>
-                      <button type="button" className={buttonStyles.button} data-variant="danger" data-size="small" disabled={isSaving} onClick={() => setDeletingItem(item)}>삭제</button>
+                      {canUpdate && <button type="button" className={buttonStyles.button} data-variant="outline" data-size="small" disabled={isSaving} onClick={() => setEditingItem({ ...item })}>수정</button>}
+                      {canDelete && <button type="button" className={buttonStyles.button} data-variant="danger" data-size="small" disabled={isSaving} onClick={() => setDeletingItem(item)}>삭제</button>}
                     </div>
-                  </td>
+                  </td>}
                 </tr>
               ))}
             </tbody>
@@ -384,7 +385,7 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
         )}
       </div>
 
-      {isAddModalOpen && (
+      {canCreate && isAddModalOpen && (
         <ItemDialog
           title={isMaster ? '신규 품목 마스터 등록' : '신규 품목 등록'}
           item={newItem}
@@ -394,7 +395,7 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
           onSave={() => void saveItem(newItem)}
         />
       )}
-      {editingItem && (
+      {canUpdate && editingItem && (
         <ItemDialog
           title={isMaster ? '품목 마스터 수정' : '재고 정보 수정'}
           item={editingItem}
@@ -405,7 +406,7 @@ export function InventoryItems({ variant }: { variant: 'inventory' | 'master' })
           onSave={() => void saveItem(editingItem, editingItem.id)}
         />
       )}
-      {deletingItem && (
+      {canDelete && deletingItem && (
         <DeleteConfirmModal
           message={deletingItem.name + ' (' + deletingItem.id + ') 품목을 삭제하시겠습니까?'}
           isDeleting={isSaving}
