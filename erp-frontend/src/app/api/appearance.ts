@@ -1,3 +1,9 @@
+import defaultLogo from '../../../public/default-logo.png';
+
+export { defaultLogo };
+
+export const emptyFavicon = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>')}`;
+
 export type Theme = 'LIGHT' | 'DARK';
 
 export interface Appearance {
@@ -14,13 +20,8 @@ export const defaultAppearance: Appearance = {
   version: null,
 };
 
-export const defaultLogo = '/default-logo.png';
-export const themeCookie = 'erp-theme';
+export const themeStorageKey = 'erp-theme';
 
 export function isTheme(value: unknown): value is Theme {
   return value === 'LIGHT' || value === 'DARK';
-}
-
-export function logoUrl(appearance: Appearance) {
-  return appearance.hasLogo ? `/system-logo?v=${appearance.version}` : defaultLogo;
 }

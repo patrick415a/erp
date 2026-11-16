@@ -2,10 +2,9 @@
 
 import Image from 'next/image';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { erpClient } from '@/app/api/erpClient';
-import { defaultLogo, logoUrl, type Appearance } from '@/app/api/appearance';
+import { defaultLogo, type Appearance, type Theme } from '@/app/api/appearance';
 import { Layout } from '@/components/Layout';
 import AlertModal from '@/components/modal/AlertModal';
 import { Icon } from '@/components/ui/Icon';
@@ -24,13 +23,14 @@ const themes = [
 ] as const;
 
 export default function SystemSettingsPage() {
-  const router = useRouter();
   const { can } = useAccess();
-  const { appearance, applyAppearance } = useAppearance();
+  const { appearance, displayName, logo, fallbackToDefaultLogo, applyAppearance } = useAppearance();
   const canUpdate = can('SYSTEM_SETTINGS_UPDATE');
   const [section, setSection] = useState<'brand' | 'theme'>('brand');
-  const [name, setName] = useState(appearance.name);
-  const [theme, setTheme] = useState(appearance.defaultTheme);
+  const [draftName, setDraftName] = useState<string | null>(null);
+  const [draftTheme, setDraftTheme] = useState<Theme | null>(null);
+  const name = draftName ?? displayName;
+  const theme = draftTheme ?? appearance.defaultTheme;
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState('');
   const [resetLogo, setResetLogo] = useState(false);
@@ -77,14 +77,14 @@ export default function SystemSettingsPage() {
         if (appearance.version !== null) body.set('version', String(appearance.version));
         if (file) body.set('logo', file);
         ({ data: next } = await erpClient.put<Appearance>('/api/settings/system/brand', body));
-        setName(next.name);
+        setDraftName(null);
         clearSelectedLogo();
         setResetLogo(false);
       } else {
         ({ data: next } = await erpClient.put<Appearance>('/api/settings/system/theme', { theme, version: appearance.version }));
+        setDraftTheme(null);
       }
       applyAppearance(next);
-      router.refresh();
       setFeedback({ text: section === 'brand' ? '시스템 정보를 저장했습니다.' : '기본 테마를 저장했습니다.' });
     } catch (error) {
       const response = axios.isAxiosError<{ detail?: string }>(error) ? error.response : undefined;
@@ -106,7 +106,7 @@ export default function SystemSettingsPage() {
   }
 
   const title = sections.find(([id]) => id === section)?.[1];
-  const image = preview || (resetLogo ? defaultLogo : logoUrl(appearance));
+  const image = preview || (resetLogo ? defaultLogo : logo);
 
   return (
     <Layout>
@@ -136,7 +136,7 @@ export default function SystemSettingsPage() {
               <>
                 <label className={forms.field}>
                   <span className={forms.label}>시스템명</span>
-                  <input className={forms.input} value={name} onChange={(event) => setName(event.target.value)}
+                  <input className={forms.input} value={name} onChange={(event) => setDraftName(event.target.value)}
                     maxLength={50} required readOnly={!canUpdate || isSaving} />
                 </label>
                 <div className={forms.field}>
@@ -144,7 +144,10 @@ export default function SystemSettingsPage() {
                     ? <label className={forms.label} htmlFor="system-logo-file">로고 아이콘</label>
                     : <span className={forms.label}>로고 아이콘</span>}
                   <div className={styles.logoRow}>
-                    <Image src={image} alt="시스템 로고 미리보기" width={60} height={60} className={styles.logo} unoptimized />
+                    {image
+                      ? <Image src={image} alt="시스템 로고 미리보기" width={60} height={60} className={styles.logo} unoptimized
+                          onError={image === logo ? fallbackToDefaultLogo : undefined} />
+                      : <span style={{ width: 60, height: 60 }} aria-hidden="true" />}
                     {canUpdate && <div className={forms.field}>
                       <input ref={logoInput} id="system-logo-file" type="file" accept="image/png,image/jpeg" aria-describedby="system-logo-help"
                         className={styles.file} onChange={selectLogo} disabled={isSaving} />
@@ -167,7 +170,7 @@ export default function SystemSettingsPage() {
                   {themes.map(({ value, label, icon }) => (
                     <label key={value} className={`${forms.radioLabel} ${styles.themeOption}`}>
                       <input type="radio" name="theme" value={value} checked={theme === value}
-                        onChange={() => setTheme(value)} />
+                        onChange={() => setDraftTheme(value)} />
                       <span className={styles.themeSample} data-preview={value.toLowerCase()} aria-hidden="true">
                         <span /><span /><span />
                       </span>

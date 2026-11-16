@@ -3,17 +3,18 @@
 import Image from 'next/image';
 import styles from '@/assets/layout/Brand.module.scss';
 import Link from 'next/link';
-import { logoUrl } from '@/app/api/appearance';
 import { useAppearance } from '@/store/appearance';
 
 export function Brand({ compact = false, href = '/dashboard' }: { compact?: boolean; href?: string | null }) {
-  const { appearance } = useAppearance();
+  const { displayName, logo, fallbackToDefaultLogo } = useAppearance();
   const size = compact ? 31 : 36;
   const className = compact ? `${styles.brand} ${styles.compact}` : styles.brand;
   const content = (
     <>
-      <Image className={styles.mark} src={logoUrl(appearance)} alt="" width={size} height={size} unoptimized />
-      <span className={styles.name} title={appearance.name}>{appearance.name}</span>
+      {logo
+        ? <Image className={styles.mark} src={logo} alt="" width={size} height={size} unoptimized onError={fallbackToDefaultLogo} />
+        : <span className={styles.mark} style={{ width: size, height: size }} aria-hidden="true" />}
+      <span className={styles.name} title={displayName}>{displayName}</span>
     </>
   );
 
