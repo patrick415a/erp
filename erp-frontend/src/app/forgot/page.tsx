@@ -8,6 +8,7 @@ import { Brand } from '@/components/Brand';
 import styles from '@/assets/auth/AuthForm.module.scss';
 import Link from 'next/link';
 import axios from 'axios';
+import { memberApiUrl } from '@/app/api/members';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -19,7 +20,7 @@ export default function ForgotPasswordClient() {
     e.preventDefault();
 
     try {
-      await axios.post('http://127.0.0.1:8080/api/members/forgot-password', { email });
+      await axios.post(memberApiUrl() + '/forgot-password', { email });
       alert('이메일로 임시 비밀번호가 발송되었습니다. 확인 후 로그인해주세요.');
       router.push('/'); // 메인 로그인 화면으로 이동
     } catch (error: any) {

@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setLogin } from '@/store/authSlice';
 import { firstAvailableMenu } from '@/app/api/access';
+import { memberApiUrl } from '@/app/api/members';
 import { requestCurrentAccess } from '@/app/api/erpClient';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 
@@ -137,7 +138,7 @@ export default function Member() {
 
     try {
       // Spring Boot 서버로 POST 요청 (CORS 설정 및 포트에 맞게 URL 수정 필요)
-      const response = await axios.post('http://127.0.0.1:8080/api/members/register', formData);
+      const response = await axios.post(memberApiUrl() + '/register', formData);
 
       if (response.status === 200 || response.status === 201) {
         // 만약 백엔드에서 가입과 동시에 토큰을 내려준다면 바로 전역 상태(Redux)에 저장

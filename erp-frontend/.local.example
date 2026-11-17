@@ -2,4 +2,3 @@
 # Web3Forms에서 수신 이메일에 발급한 Access Key를 입력
 NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY=
 # 배포된 ERP 백엔드의 주소를 넣고 프론트를 다시 빌드하세요.
-NEXT_PUBLIC_ERP_API_URL=
