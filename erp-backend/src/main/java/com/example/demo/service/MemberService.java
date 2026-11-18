@@ -152,7 +152,12 @@ public class MemberService {
         String email,
         String displayName
     ) {
-        String address = email.strip().toLowerCase(Locale.ROOT);
+        if (email == null && !provider.equals("kakao")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "인증된 이메일이 필요합니다.");
+        }
+        String address = email == null
+            ? "kakao-" + UUID.randomUUID() + "@kakao.invalid"
+            : email.strip().toLowerCase(Locale.ROOT);
         if (address.length() > 100 || providerId.length() > 100) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "계정 정보가 너무 깁니다.");
         }

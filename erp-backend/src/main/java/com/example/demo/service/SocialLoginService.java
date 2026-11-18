@@ -56,7 +56,7 @@ public class SocialLoginService {
             "https://kauth.kakao.com/oauth/authorize",
             "https://kauth.kakao.com/oauth/token",
             "https://kapi.kakao.com/v2/user/me",
-            "account_email"
+            ""
         );
 
         var requestFactory = new SimpleClientHttpRequestFactory();
@@ -84,14 +84,19 @@ public class SocialLoginService {
         requireBrowserOrigin(browserOrigin);
         Provider provider = getProvider(providerName);
         String state = randomToken();
-        URI authorizationUrl = UriComponentsBuilder.fromUriString(provider.authorizeUrl())
+        var authorization = UriComponentsBuilder.fromUriString(provider.authorizeUrl())
             .queryParam("client_id", "{clientId}")
             .queryParam("redirect_uri", "{redirectUri}")
             .queryParam("response_type", "code")
-            .queryParam("scope", "{scope}")
-            .queryParam("state", state)
+            .queryParam("state", state);
+        if (!provider.scope().isEmpty()) {
+            authorization.queryParam("scope", "{scope}");
+        }
+        URI authorizationUrl = authorization
             .encode()
-            .buildAndExpand(provider.clientId(), redirectUri, provider.scope())
+            .buildAndExpand(Map.of(
+                "clientId", provider.clientId(), "redirectUri", redirectUri, "scope", provider.scope()
+            ))
             .toUri();
 
         return new Authorization(
@@ -167,25 +172,26 @@ public class SocialLoginService {
     }
 
     private SocialAccount kakaoAccount(Map<String, Object> user) {
-        if (
-            !(user.get("id") instanceof Number id) ||
-            !(user.get("kakao_account") instanceof Map<?, ?> account)
-        ) {
+        if (!(user.get("id") instanceof Number id)) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Kakao 계정의 이메일 정보가 필요합니다."
+                "카카오 계정 정보를 확인하지 못했습니다."
             );
         }
+        Map<?, ?> account = user.get("kakao_account") instanceof Map<?, ?> info ? info : Map.of();
         Object nickname = account.get("profile") instanceof Map<?, ?> profile
             ? profile.get("nickname")
             : null;
-        return verifiedAccount(
-            id.toString(),
-            account.get("email"),
-            nickname,
-            Boolean.TRUE.equals(account.get("is_email_verified")) &&
-            Boolean.TRUE.equals(account.get("is_email_valid"))
-        );
+        String email = null;
+        if (Boolean.TRUE.equals(account.get("is_email_verified")) &&
+            Boolean.TRUE.equals(account.get("is_email_valid")) &&
+            account.get("email") instanceof String address && !address.isBlank()) {
+            email = address;
+        }
+        String name = nickname instanceof String displayName && !displayName.isBlank()
+            ? displayName
+            : (email != null ? email.split("@", 2)[0] : "사용자");
+        return new SocialAccount(id.toString(), email, name);
     }
 
     private SocialAccount verifiedAccount(String subject, Object email, Object name, boolean verified) {
