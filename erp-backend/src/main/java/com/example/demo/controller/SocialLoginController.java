@@ -40,7 +40,7 @@ public class SocialLoginController {
 
     @PostMapping("/complete")
     public TokenResponseDto complete(@RequestBody Callback callback, @RequestHeader("Origin") String origin) {
-        socialLogin.requireBrowserOrigin(origin);
+        String redirectUri = socialLogin.redirectForBrowserOrigin(origin);
         if (
             callback.code() == null ||
             callback.code().isBlank() ||
@@ -56,6 +56,7 @@ public class SocialLoginController {
             attempt = attempts.get(callback.state());
             if (
                 attempt == null || !attempt.expiresAt().isAfter(Instant.now()) ||
+                !attempt.redirectUri().equals(redirectUri) ||
                 !MessageDigest.isEqual(attempt.verifier().getBytes(StandardCharsets.UTF_8),
                     callback.verifier().getBytes(StandardCharsets.UTF_8))
             ) {

@@ -4,6 +4,7 @@ import java.net.URI;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -26,7 +27,7 @@ public class SocialLoginService {
 
     private final MemberService members;
     private final RestClient client;
-    private final String redirectUri;
+    private final Map<String, String> redirectsByOrigin;
     private final Provider google;
     private final Provider kakao;
 
@@ -39,7 +40,7 @@ public class SocialLoginService {
         @Value("${ERP_KAKAO_CLIENT_SECRET:}") String kakaoSecret
     ) {
         this.members = members;
-        this.redirectUri = redirectUri;
+        this.redirectsByOrigin = browserRedirects(redirectUri);
         this.google = new Provider(
             "google",
             googleId,
@@ -65,23 +66,40 @@ public class SocialLoginService {
         this.client = RestClient.builder().requestFactory(requestFactory).build();
     }
 
-    public void requireBrowserOrigin(String browserOrigin) {
-        String expectedOrigin = UriComponentsBuilder.fromUriString(redirectUri)
-            .replacePath(null)
-            .replaceQuery(null)
-            .fragment(null)
-            .build()
-            .toUriString();
-        if (!expectedOrigin.equals(browserOrigin)) {
+    private static Map<String, String> browserRedirects(String redirectUri) {
+        URI configured = URI.create(redirectUri);
+        var redirects = new HashMap<String, String>();
+        redirects.put(originOf(configured), redirectUri);
+        if ("https".equals(configured.getScheme()) && configured.getPort() == -1) {
+            String host = configured.getHost();
+            String alias = "heartbreakkid.co.kr".equals(host) ? "www.heartbreakkid.co.kr"
+                : "www.heartbreakkid.co.kr".equals(host) ? "heartbreakkid.co.kr" : null;
+            if (alias != null) {
+                URI alternate = UriComponentsBuilder.fromUri(configured).host(alias).build(true).toUri();
+                redirects.put(originOf(alternate), alternate.toString());
+            }
+        }
+        return Map.copyOf(redirects);
+    }
+
+    private static String originOf(URI uri) {
+        return UriComponentsBuilder.fromUri(uri).replacePath(null).replaceQuery(null)
+            .fragment(null).build(true).toUriString();
+    }
+
+    public String redirectForBrowserOrigin(String browserOrigin) {
+        String redirectUri = redirectsByOrigin.get(browserOrigin);
+        if (redirectUri == null) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "로그인 화면 주소와 리디렉션 설정이 일치하지 않습니다."
             );
         }
+        return redirectUri;
     }
 
     public Authorization start(String providerName, String browserOrigin) {
-        requireBrowserOrigin(browserOrigin);
+        String redirectUri = redirectForBrowserOrigin(browserOrigin);
         Provider provider = getProvider(providerName);
         String state = randomToken();
         var authorization = UriComponentsBuilder.fromUriString(provider.authorizeUrl())
@@ -101,7 +119,7 @@ public class SocialLoginService {
 
         return new Authorization(
             authorizationUrl,
-            new Attempt(provider.name(), state, randomToken(), Instant.now().plusSeconds(600))
+            new Attempt(provider.name(), state, randomToken(), redirectUri, Instant.now().plusSeconds(600))
         );
     }
 
@@ -117,7 +135,7 @@ public class SocialLoginService {
         form.add("grant_type", "authorization_code");
         form.add("client_id", provider.clientId());
         if (!provider.clientSecret().isBlank()) form.add("client_secret", provider.clientSecret());
-        form.add("redirect_uri", redirectUri);
+        form.add("redirect_uri", attempt.redirectUri());
         form.add("code", code);
 
         Map<String, Object> user;
@@ -244,7 +262,7 @@ public class SocialLoginService {
 
     private record SocialAccount(String subject, String email, String name) {}
 
-    public record Attempt(String provider, String state, String verifier, Instant expiresAt) {}
+    public record Attempt(String provider, String state, String verifier, String redirectUri, Instant expiresAt) {}
 
     public record Authorization(URI url, Attempt attempt) {}
 }

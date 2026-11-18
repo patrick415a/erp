@@ -77,10 +77,17 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
+            @Value("${RENDER:false}") boolean onRender,
             @Value("${ERP_OAUTH_REDIRECT_URI:}") String redirectUri) {
         CorsConfiguration configuration = new CorsConfiguration();
         // 💡 프론트엔드 주소 허용 (포트 번호 주의)
         configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://localhost:3001"));
+        if (onRender) {
+            configuration.addAllowedOrigin("http://heartbreakkid.co.kr");
+            configuration.addAllowedOrigin("http://www.heartbreakkid.co.kr");
+            configuration.addAllowedOrigin("https://heartbreakkid.co.kr");
+            configuration.addAllowedOrigin("https://www.heartbreakkid.co.kr");
+        }
         if (!redirectUri.isBlank()) {
             configuration.addAllowedOrigin(UriComponentsBuilder.fromUriString(redirectUri)
                     .replacePath(null).replaceQuery(null).fragment(null).build().toUriString());
