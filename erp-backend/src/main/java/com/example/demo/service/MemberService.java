@@ -11,7 +11,6 @@ import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +23,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
-    private final JavaMailSender mailSender;
+    private final GmailMailService mailSender;
 
     @Transactional
     public void register(MemberRegisterDto dto) {
@@ -63,30 +62,26 @@ public class MemberService {
         return jwtProvider.generateToken(member.getEmail());
     }
 
-    // 💡 1. 임시 비밀번호 발급 및 메일 전송 로직
     @Transactional
     public void sendTempPassword(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("가입한 이메일을 입력해 주세요.");
+        }
         Member member = memberRepository
-            .findByEmail(email)
+            .findByEmail(email.strip())
             .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
-
-        // 8자리 랜덤 임시 비밀번호 생성 (java.util.UUID 임포트 필요)
-        String tempPassword = java.util.UUID.randomUUID().toString().substring(0, 8);
-
-        // DB 비밀번호를 임시 비밀번호로 업데이트 (암호화해서 저장)
+        if (member.getEmail().endsWith("@kakao.invalid")) {
+            throw new IllegalArgumentException("카카오로 로그인해 주세요.");
+        }
+        String tempPassword = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         member.setPassword(passwordEncoder.encode(tempPassword));
-
-        // 메일 발송 (org.springframework.mail.SimpleMailMessage 임포트 필요)
-        org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
-        message.setTo(email);
-        message.setSubject("[ERP 시스템] 임시 비밀번호 발급 안내");
-        message.setText(
-            "요청하신 임시 비밀번호는 [" +
-            tempPassword +
-            "] 입니다.\n로그인 후 마이페이지에서 반드시 비밀번호를 변경해 주세요."
+        memberRepository.flush();
+        mailSender.send(
+            member.getEmail(),
+            "[ERP 시스템] 임시 비밀번호 발급 안내",
+            "요청하신 임시 비밀번호는 [" + tempPassword
+                + "] 입니다.\n로그인 후 마이페이지에서 반드시 비밀번호를 변경해 주세요."
         );
-
-        mailSender.send(message);
     }
 
     // 💡 2. 마이페이지 비밀번호 변경 로직
