@@ -22,6 +22,7 @@ import styles from '@/assets/auth/AuthForm.module.scss';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 
 type SocialProvider = 'google' | 'kakao';
+const savedEmailKey = 'erp.savedLoginEmail';
 
 /*export const metadata: Metadata = {
   title: "로그인",
@@ -34,6 +35,7 @@ export default function Home() {
   // 입력값 상태 관리
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberEmail, setRememberEmail] = useState(false);
 
   // 모달 상태 관리
   const [notice, setNotice] = useState<AlertNotice | null>(null);
@@ -64,6 +66,16 @@ export default function Home() {
   useEffect(() => {
     const controller = new AbortController();
     const start = window.setTimeout(() => {
+      try {
+        const savedEmail = window.localStorage.getItem(savedEmailKey);
+        if (savedEmail) {
+          setEmail((current) => current || savedEmail);
+          setRememberEmail(true);
+        }
+      } catch {
+        // The login form is still usable if browser storage is blocked.
+      }
+
       const url = new URL(window.location.href);
       const code = url.searchParams.get('code');
       const state = url.searchParams.get('state');
@@ -155,7 +167,15 @@ export default function Home() {
         password,
       });
 
-      if (response.status === 200) await completeLogin(response.data.token);
+      if (response.status === 200) {
+        try {
+          if (rememberEmail) window.localStorage.setItem(savedEmailKey, email);
+          else window.localStorage.removeItem(savedEmailKey);
+        } catch {
+          // Saving the email is optional and must not prevent login.
+        }
+        await completeLogin(response.data.token);
+      }
     } catch (error) {
       console.error('로그인 에러:', error);
       showLoginError('이메일 또는 비밀번호를 확인해 주세요.');
@@ -216,9 +236,14 @@ export default function Home() {
               />
             </div>
             <div className={styles.checkbox}>
-              <input type="checkbox" id="customCheck" />
+              <input
+                type="checkbox"
+                id="customCheck"
+                checked={rememberEmail}
+                onChange={(e) => setRememberEmail(e.target.checked)}
+              />
               <label htmlFor="customCheck" className={formControlsStyles.checkboxLabel}>
-                로그인 상태 유지
+                아이디 저장
               </label>
             </div>
             <button
