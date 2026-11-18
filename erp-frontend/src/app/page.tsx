@@ -10,6 +10,7 @@ import { useDispatch } from 'react-redux';
 import { store, type AppDispatch } from '@/store/store';
 import { loadUserInfo, setLogin } from '@/store/authSlice';
 import { memberApiUrl } from '@/app/api/members';
+import { redirectForSocialLogin, takeSocialLoginVerifier, type SocialProvider } from '@/app/api/socialLogin';
 import { firstAvailableMenu } from '@/app/api/access';
 import { requestCurrentAccess } from '@/app/api/erpClient';
 
@@ -21,7 +22,6 @@ import { useCallback, useEffect, useState } from 'react';
 import styles from '@/assets/auth/AuthForm.module.scss';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
 
-type SocialProvider = 'google' | 'kakao';
 const savedEmailKey = 'erp.savedLoginEmail';
 
 /*export const metadata: Metadata = {
@@ -94,7 +94,8 @@ export default function Home() {
         url.searchParams.delete(key);
       }
       window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
-      if (!code || !state || error) {
+      const verifier = takeSocialLoginVerifier();
+      if (!code || !state || !verifier || error) {
         showLoginError(
           error === 'access_denied'
             ? '소셜 로그인이 취소되었습니다.'
@@ -107,9 +108,8 @@ export default function Home() {
       axios
         .post<{ token: string }>(
           memberApiUrl() + '/oauth/complete',
-          { code, state },
+          { code, state, verifier },
           {
-            withCredentials: true,
             signal: controller.signal,
             timeout: 25000,
           },
@@ -142,12 +142,7 @@ export default function Home() {
   const startSocialLogin = async (provider: SocialProvider) => {
     setIsLoginPending(true);
     try {
-      const { data } = await axios.post<{ authorizationUrl: string }>(
-        memberApiUrl() + '/oauth/' + provider + '/authorize',
-        null,
-        { withCredentials: true, timeout: 8000 },
-      );
-      window.location.assign(data.authorizationUrl);
+      await redirectForSocialLogin(provider);
     } catch {
       showLoginError('소셜 로그인에 실패했습니다. 이메일로 로그인하거나 잠시 후 다시 시도해 주세요.');
       setIsLoginPending(false);

@@ -16,16 +16,9 @@ import { useDispatch } from 'react-redux';
 import { setLogin } from '@/store/authSlice';
 import { firstAvailableMenu } from '@/app/api/access';
 import { memberApiUrl } from '@/app/api/members';
+import { redirectForSocialLogin, type SocialProvider } from '@/app/api/socialLogin';
 import { requestCurrentAccess } from '@/app/api/erpClient';
 import AlertModal, { type AlertNotice } from '@/components/modal/AlertModal';
-
-const handleGoogleLogin = () => {
-  // Google 소셜 연동을 추가할 위치입니다. 기존처럼 실제 연동은 구현되어 있지 않습니다.
-};
-
-const handleKakaoLogin = () => {
-  // 카카오 로그인 로직
-};
 
 interface FormData {
   firstName: string;
@@ -78,6 +71,18 @@ export default function Member() {
   const [notice, setNotice] = useState<AlertNotice | null>(null);
   // 확인 버튼을 눌렀을 때 이동할 경로를 저장 (로그인 성공 시 대시보드로 가기 위함)
   const [nextRoute, setNextRoute] = useState('/');
+  const [isSocialLoginPending, setIsSocialLoginPending] = useState(false);
+
+  const startSocialLogin = async (provider: SocialProvider) => {
+    setIsSocialLoginPending(true);
+    try {
+      await redirectForSocialLogin(provider);
+    } catch {
+      setNextRoute('');
+      setNotice({ message: '소셜 가입을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.', status: 'error' });
+      setIsSocialLoginPending(false);
+    }
+  };
 
   const handleCloseModal = () => {
     setNotice(null);
@@ -388,7 +393,8 @@ export default function Member() {
             <div className={styles.social}>
               <button
                 type="button"
-                onClick={handleGoogleLogin}
+                onClick={() => void startSocialLogin('google')}
+                disabled={isSocialLoginPending}
                 data-provider="google"
                 className={buttonStyles.socialButton}
               >
@@ -396,7 +402,8 @@ export default function Member() {
               </button>
               <button
                 type="button"
-                onClick={handleKakaoLogin}
+                onClick={() => void startSocialLogin('kakao')}
+                disabled={isSocialLoginPending}
                 data-provider="kakao"
                 className={buttonStyles.socialButton}
               >

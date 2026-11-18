@@ -2,61 +2,66 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.TokenResponseDto;
 import com.example.demo.service.SocialLoginService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.util.WebUtils;
 
 @RestController
 @RequestMapping("/api/members/oauth")
 @RequiredArgsConstructor
 public class SocialLoginController {
 
-    private static final String LOGIN_ATTEMPT = "erp.socialLoginAttempt";
+    private static final int MAX_PENDING_ATTEMPTS = 2000;
     private final SocialLoginService socialLogin;
+    private final Map<String, SocialLoginService.Attempt> attempts = new HashMap<>();
 
     @PostMapping("/{provider}/authorize")
     public Map<String, String> authorize(
         @PathVariable("provider") String provider,
-        @RequestHeader("Origin") String origin,
-        HttpSession session
+        @RequestHeader("Origin") String origin
     ) {
         var authorization = socialLogin.start(provider, origin);
-        synchronized (WebUtils.getSessionMutex(session)) {
-            session.setAttribute(LOGIN_ATTEMPT, authorization.attempt());
+        synchronized (attempts) {
+            Instant now = Instant.now();
+            attempts.values().removeIf(attempt -> !attempt.expiresAt().isAfter(now));
+            if (attempts.size() >= MAX_PENDING_ATTEMPTS) {
+                throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS);
+            }
+            attempts.put(authorization.attempt().state(), authorization.attempt());
         }
-        return Map.of("authorizationUrl", authorization.url().toString());
+        return Map.of("authorizationUrl", authorization.url().toString(), "verifier", authorization.attempt().verifier());
     }
 
     @PostMapping("/complete")
-    public TokenResponseDto complete(@RequestBody Callback callback, HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
+    public TokenResponseDto complete(@RequestBody Callback callback, @RequestHeader("Origin") String origin) {
+        socialLogin.requireBrowserOrigin(origin);
         if (
-            session == null ||
             callback.code() == null ||
             callback.code().isBlank() ||
             callback.code().length() > 2048 ||
-            callback.state() == null
+            callback.state() == null || callback.state().length() != 43 ||
+            callback.verifier() == null || callback.verifier().length() != 43
         ) {
             throw invalidAttempt();
         }
 
         SocialLoginService.Attempt attempt;
-        synchronized (WebUtils.getSessionMutex(session)) {
+        synchronized (attempts) {
+            attempt = attempts.get(callback.state());
             if (
-                !(session.getAttribute(LOGIN_ATTEMPT) instanceof SocialLoginService.Attempt pending) ||
-                !pending.state().equals(callback.state()) ||
-                !pending.expiresAt().isAfter(Instant.now())
+                attempt == null || !attempt.expiresAt().isAfter(Instant.now()) ||
+                !MessageDigest.isEqual(attempt.verifier().getBytes(StandardCharsets.UTF_8),
+                    callback.verifier().getBytes(StandardCharsets.UTF_8))
             ) {
                 throw invalidAttempt();
             }
-            attempt = pending;
-            session.removeAttribute(LOGIN_ATTEMPT);
+            attempts.remove(callback.state());
         }
         return new TokenResponseDto(socialLogin.login(attempt, callback.code()));
     }
@@ -68,5 +73,5 @@ public class SocialLoginController {
         );
     }
 
-    public record Callback(String code, String state) {}
+    public record Callback(String code, String state, String verifier) {}
 }

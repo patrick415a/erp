@@ -32,7 +32,7 @@ public class SocialLoginService {
 
     public SocialLoginService(
         MemberService members,
-        @Value("${ERP_OAUTH_REDIRECT_URI:http://localhost:3000/}") String redirectUri,
+        @Value("${ERP_OAUTH_REDIRECT_URI:http://localhost:3000/group/two/2/}") String redirectUri,
         @Value("${ERP_GOOGLE_CLIENT_ID:}") String googleId,
         @Value("${ERP_GOOGLE_CLIENT_SECRET:}") String googleSecret,
         @Value("${ERP_KAKAO_CLIENT_ID:}") String kakaoId,
@@ -65,8 +65,7 @@ public class SocialLoginService {
         this.client = RestClient.builder().requestFactory(requestFactory).build();
     }
 
-    public Authorization start(String providerName, String browserOrigin) {
-        Provider provider = getProvider(providerName);
+    public void requireBrowserOrigin(String browserOrigin) {
         String expectedOrigin = UriComponentsBuilder.fromUriString(redirectUri)
             .replacePath(null)
             .replaceQuery(null)
@@ -79,10 +78,12 @@ public class SocialLoginService {
                 "로그인 화면 주소와 리디렉션 설정이 일치하지 않습니다."
             );
         }
+    }
 
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        String state = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    public Authorization start(String providerName, String browserOrigin) {
+        requireBrowserOrigin(browserOrigin);
+        Provider provider = getProvider(providerName);
+        String state = randomToken();
         URI authorizationUrl = UriComponentsBuilder.fromUriString(provider.authorizeUrl())
             .queryParam("client_id", "{clientId}")
             .queryParam("redirect_uri", "{redirectUri}")
@@ -95,8 +96,14 @@ public class SocialLoginService {
 
         return new Authorization(
             authorizationUrl,
-            new Attempt(provider.name(), state, Instant.now().plusSeconds(600))
+            new Attempt(provider.name(), state, randomToken(), Instant.now().plusSeconds(600))
         );
+    }
+
+    private static String randomToken() {
+        byte[] bytes = new byte[32];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     public String login(Attempt attempt, String code) {
@@ -231,7 +238,7 @@ public class SocialLoginService {
 
     private record SocialAccount(String subject, String email, String name) {}
 
-    public record Attempt(String provider, String state, Instant expiresAt) implements java.io.Serializable {}
+    public record Attempt(String provider, String state, String verifier, Instant expiresAt) {}
 
     public record Authorization(URI url, Attempt attempt) {}
 }
