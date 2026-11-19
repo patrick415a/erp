@@ -70,7 +70,7 @@ public class SocialLoginService {
         URI configured = URI.create(redirectUri);
         var redirects = new HashMap<String, String>();
         redirects.put(originOf(configured), redirectUri);
-        if ("https".equals(configured.getScheme()) && configured.getPort() == -1) {
+        if (configured.getPort() == -1) {
             String host = configured.getHost();
             String alias = "heartbreakkid.co.kr".equals(host) ? "www.heartbreakkid.co.kr"
                 : "www.heartbreakkid.co.kr".equals(host) ? "heartbreakkid.co.kr" : null;
