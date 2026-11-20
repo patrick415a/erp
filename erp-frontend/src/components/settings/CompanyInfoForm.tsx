@@ -169,13 +169,9 @@ export function CompanyInfoForm() {
       {canUpdate && <button type="submit" className={styles.saveBtn} disabled={isSaving}>
         {isSaving ? '저장 중…' : '변경사항 저장'}
       </button>}
-      {notice?.status === 'success' ? (
-        <AlertModal isOpen status="success" message={notice.message} onClose={() => setNotice(null)} />
-      ) : notice && (
-        <p className={styles.formError} role="status">
-          {notice.message}
-          {notice.status === 'login' && <> <Link href="/">로그인 페이지</Link></>}
-        </p>
+      {notice && (
+        <AlertModal isOpen status={notice.status === 'success' ? 'success' : 'error'}
+          message={notice.message} onClose={() => setNotice(null)} />
       )}
     </form>
   );

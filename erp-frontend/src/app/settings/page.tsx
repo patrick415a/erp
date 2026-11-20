@@ -183,12 +183,11 @@ export default function SystemSettingsPage() {
             {canUpdate && <button type="submit" className={`${buttons.button} ${styles.save}`} disabled={isSaving}>
               {isSaving ? '저장 중…' : '변경사항 저장'}
             </button>}
-            {feedback?.error && <p className={layout.formError} role="status">{feedback.text}</p>}
           </form>
         </section>
       </div>
-      {feedback && !feedback.error && (
-        <AlertModal isOpen status="success" message={feedback.text} onClose={() => setFeedback(null)} />
+      {feedback && (
+        <AlertModal isOpen status={feedback.error ? 'error' : 'success'} message={feedback.text} onClose={() => setFeedback(null)} />
       )}
     </Layout>
   );

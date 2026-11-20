@@ -11,6 +11,7 @@ import forms from '@/assets/common/FormControls.module.scss';
 import styles from '@/assets/dashboard/settings/Settings.module.scss';
 import modal from '@/assets/modal/ModalParts.module.scss';
 import ModalLayout from '@/components/modal/ModalLayout';
+import AlertModal from '@/components/modal/AlertModal';
 import { Icon } from '@/components/ui/Icon';
 
 interface RolePolicy {
@@ -145,7 +146,7 @@ export function RolePermissions() {
           );
         })}
       </ul>
-      {notice && <p className={styles.roleNotice} role="status">{notice}</p>}
+      {notice && <AlertModal isOpen message={notice} status="success" onClose={() => setNotice('')} />}
       {editor && (
         <ModalLayout isOpen onClose={() => { if (!isSaving) setEditor(null); }} title={`${roles[editor.role].label} 권한 설정`}>
           <form onSubmit={savePolicy} aria-busy={isSaving}>
